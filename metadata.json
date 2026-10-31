@@ -1,0 +1,6 @@
+{
+  "name": "KRAFTWERK // Hamburg Techno Radar",
+  "description": "Autonomer KI-Agent und Radar für Hamburgs Techno- und Underground-Events, Clubs, Lineups, Türpolitik und Direkt-Ticketkauf.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
