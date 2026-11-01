@@ -70,13 +70,16 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
     document.body.removeChild(link);
   };
 
+  const city = event.city || club?.city || 'Hamburg';
   const mapsUrl = club
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(club.name + ' ' + club.address + ' Hamburg')}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.clubName + ' Hamburg')}`;
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(club.name + ' ' + club.address + ' ' + city)}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.clubName + ' ' + city)}`;
 
-  const hvvUrl = club
-    ? `https://www.hvv.de/de/fahrplaene/abfahrt-ankunft?destination=${encodeURIComponent(club.transit.station)}`
-    : `https://www.hvv.de`;
+  const transitUrl = club
+    ? (city === 'Berlin'
+        ? `https://www.bvg.de/de/verbindungen/verbindungssuche?to=${encodeURIComponent(club.transit.station)}`
+        : `https://www.hvv.de/de/fahrplaene/abfahrt-ankunft?destination=${encodeURIComponent(club.transit.station)}`)
+    : (city === 'Berlin' ? 'https://www.bvg.de' : 'https://www.hvv.de');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md overflow-y-auto">
@@ -407,13 +410,13 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
                 </a>
 
                 <a
-                  href={hvvUrl}
+                  href={transitUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-xs font-semibold rounded-lg text-white border border-neutral-700 transition"
                 >
                   <Navigation className="w-3.5 h-3.5 text-yellow-400" />
-                  HVV Fahrplanauskunft
+                  {city === 'Berlin' ? 'BVG' : 'HVV'} Fahrplanauskunft
                   <ExternalLink className="w-3 h-3 text-neutral-400 ml-auto" />
                 </a>
 
@@ -426,7 +429,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
                     className="flex items-center justify-center gap-2 px-3 py-2 bg-lime-400/10 hover:bg-lime-400/20 text-lime-300 border border-lime-400/30 text-xs font-semibold rounded-lg transition"
                   >
                     <MapPin className="w-3.5 h-3.5" />
-                    Auf interaktiver Hamburg-Karte anzeigen
+                    Auf interaktiver Karte anzeigen
                   </button>
                 )}
               </div>

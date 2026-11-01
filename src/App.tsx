@@ -10,6 +10,8 @@ import { AgentAutomationPanel } from './components/AgentAutomationPanel';
 import { EventDetailModal } from './components/EventDetailModal';
 import { AdminLoginModal } from './components/AdminLoginModal.tsx';
 import { AdminAddEventModal } from './components/AdminAddEventModal.tsx';
+import { LoginScreen } from './components/LoginScreen.tsx';
+import { MobileBottomNav } from './components/MobileBottomNav.tsx';
 import { exportEventsToCSV, exportClubsToCSV } from './utils/csvExport.ts';
 import { Sparkles, X, ShieldCheck, Plus, LogOut } from 'lucide-react';
 
@@ -42,6 +44,9 @@ export default function App() {
       return null;
     }
   });
+
+  // Guarantee that the very first thing seen is the login screen
+  const [hasEnteredApp, setHasEnteredApp] = useState<boolean>(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAddEventModalOpen, setIsAddEventModalOpen] = useState(false);
 
@@ -268,7 +273,8 @@ export default function App() {
     } catch (e) {
       console.warn('LocalStorage error:', e);
     }
-    setScanNotification('Erfolgreich abgemeldet. Gast-Modus aktiv.');
+    setHasEnteredApp(false);
+    setScanNotification('Erfolgreich abgemeldet. Anmelde-Bildschirm geöffnet.');
   };
 
   const handleEventCreated = (newEvent: TechnoEvent) => {
@@ -290,6 +296,19 @@ export default function App() {
     if (!selectedEvent) return undefined;
     return clubs.find((c) => c.id === selectedEvent.clubId);
   }, [selectedEvent, clubs]);
+
+  // VERIFIKATION: Das allererste was der Nutzer sieht, ist das Login-Formular!
+  // Kein Gast-Zugang erlaubt: Ausschließlich autorisierter Administrator mit Vollzugriff
+  if (!currentUser || !hasEnteredApp) {
+    return (
+      <LoginScreen
+        onLoginSuccess={(user) => {
+          handleLoginSuccess(user);
+          setHasEnteredApp(true);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans selection:bg-lime-400 selection:text-black">
@@ -364,8 +383,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Content View Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+      {/* Main Content View Container (with bottom padding for smartphone bottom nav) */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-28 md:pb-8">
         
         {/* Tab 1: Event Table (Primary Feature) */}
         {activeTab === 'table' && (
@@ -447,8 +466,8 @@ export default function App() {
         onEventCreated={handleEventCreated}
       />
 
-      {/* Footer */}
-      <footer className="border-t border-neutral-900 bg-black/60 py-6 text-xs text-neutral-500 font-mono">
+      {/* Footer (Hidden or minimal on small smartphones to prioritize app feel) */}
+      <footer className="border-t border-neutral-900 bg-black/60 py-6 mb-14 md:mb-0 text-xs text-neutral-500 font-mono">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div>
             <span className="text-neutral-300 font-bold">KRAFTWERK // HAMBURG & BERLIN TECHNO RADAR</span>
@@ -462,6 +481,16 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Smartphone Native Bottom Navigation Bar (Visible only on mobile devices) */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        currentUser={currentUser}
+        onOpenLogin={() => setIsLoginModalOpen(true)}
+        onOpenAddEvent={() => setIsAddEventModalOpen(true)}
+        todayCount={todayEventsCount}
+      />
 
     </div>
   );

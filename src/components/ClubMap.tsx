@@ -250,17 +250,17 @@ export const ClubMap: React.FC<ClubMapProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         
         {/* Map View Container */}
-        <div className="lg:col-span-2 relative h-[520px] rounded-xl overflow-hidden border border-neutral-800 bg-neutral-950">
+        <div className="lg:col-span-2 relative h-[360px] sm:h-[450px] md:h-[520px] rounded-xl overflow-hidden border border-neutral-800 bg-neutral-950">
           <div ref={mapContainerRef} className="w-full h-full" />
           
           {/* Overlay Map Legend */}
-          <div className="absolute bottom-3 left-3 z-[1000] p-2.5 bg-neutral-950/90 backdrop-blur border border-neutral-800 rounded-lg text-[11px] font-mono space-y-1">
+          <div className="absolute bottom-3 left-3 z-[1000] p-2 sm:p-2.5 bg-neutral-950/90 backdrop-blur border border-neutral-800 rounded-lg text-[10px] sm:text-[11px] font-mono space-y-1">
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-lime-400 border border-black inline-block"></span>
-              <span className="text-neutral-300">Club mit anstehenden Events</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-lime-400 border border-black inline-block"></span>
+              <span className="text-neutral-300">Club mit Events</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-cyan-400 border border-black inline-block"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 border border-black inline-block"></span>
               <span className="text-neutral-300">Dein Standort</span>
             </div>
           </div>
@@ -275,9 +275,9 @@ export const ClubMap: React.FC<ClubMapProps> = ({
                 <div className="flex items-start justify-between">
                   <div>
                     <span className="px-2 py-0.5 rounded bg-lime-400 text-black text-[10px] font-mono font-bold uppercase">
-                      {activeClub.neighborhood}
+                      {activeClub.city || 'Hamburg'} • {activeClub.neighborhood}
                     </span>
-                    <h3 className="text-xl font-bold text-white mt-1">
+                    <h3 className="text-lg sm:text-xl font-bold text-white mt-1">
                       {activeClub.name}
                     </h3>
                   </div>
@@ -291,7 +291,7 @@ export const ClubMap: React.FC<ClubMapProps> = ({
                   )}
                 </div>
                 <p className="text-xs text-neutral-400 mt-1 font-mono">
-                  {activeClub.address}, {activeClub.postalCode} Hamburg
+                  {activeClub.address}, {activeClub.postalCode} {activeClub.city || 'Hamburg'}
                 </p>
               </div>
 
@@ -299,7 +299,7 @@ export const ClubMap: React.FC<ClubMapProps> = ({
               <div className="p-2.5 bg-neutral-950 rounded-lg border border-neutral-800 text-xs space-y-1">
                 <div className="flex items-center gap-1.5 text-neutral-300 font-semibold">
                   <Navigation className="w-3.5 h-3.5 text-yellow-400" />
-                  <span>Öffentlicher Nahverkehr (HVV)</span>
+                  <span>Öffentlicher Nahverkehr ({activeClub.city === 'Berlin' ? 'BVG' : 'HVV'})</span>
                 </div>
                 <div className="text-neutral-400 text-[11px]">
                   <strong>Station:</strong> {activeClub.transit.station} (~{activeClub.transit.walkMinutes} Min. Fußweg)

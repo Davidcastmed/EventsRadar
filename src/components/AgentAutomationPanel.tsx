@@ -120,7 +120,7 @@ export const AgentAutomationPanel: React.FC<AgentAutomationPanelProps> = ({
               {isScanning ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Durchsuche Hamburger Szene...</span>
+                  <span>Durchsuche Hamburg & Berlin...</span>
                 </>
               ) : (
                 <>

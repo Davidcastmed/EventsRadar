@@ -187,10 +187,10 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Navigation Tabs, CSV Export & Action Buttons */}
+        {/* Navigation Tabs (Desktop only - Mobile uses MobileBottomNav), CSV Export & Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
           
-          <nav className="flex items-center p-1 bg-neutral-900 border border-neutral-800 rounded-xl overflow-x-auto max-w-full">
+          <nav className="hidden md:flex items-center p-1 bg-neutral-900 border border-neutral-800 rounded-xl overflow-x-auto max-w-full">
             <button
               onClick={() => setActiveTab('table')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold font-mono whitespace-nowrap transition ${

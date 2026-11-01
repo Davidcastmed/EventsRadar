@@ -167,7 +167,7 @@ export const ClubDirectory: React.FC<ClubDirectoryProps> = ({
                 <div className="text-xs text-neutral-300 space-y-1 font-mono">
                   <div className="flex items-start gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-lime-400 shrink-0 mt-0.5" />
-                    <span>{club.address}, {club.postalCode} Hamburg</span>
+                    <span>{club.address}, {club.postalCode} {city}</span>
                   </div>
                   <div className="flex items-start gap-1.5 text-neutral-400 text-[11px]">
                     <Navigation className="w-3.5 h-3.5 text-yellow-400 shrink-0 mt-0.5" />

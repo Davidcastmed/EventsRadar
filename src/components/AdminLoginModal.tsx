@@ -9,7 +9,6 @@ import {
   CheckCircle2, 
   X, 
   ShieldCheck, 
-  Sparkles,
   ArrowRight
 } from 'lucide-react';
 
@@ -74,12 +73,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
     }
   };
 
-  const handleAutoFill = () => {
-    setUsername('admin');
-    setPassword('donquijote');
-    setError(null);
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
       <div 
@@ -132,22 +125,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
           </div>
         )}
 
-        {/* Quick Credentials Badge / Autofill Helper */}
-        <div className="mb-5 p-3 bg-neutral-950 border border-neutral-800 rounded-xl flex items-center justify-between gap-3 text-xs">
-          <div className="text-[11px] text-neutral-400 leading-tight">
-            <span className="text-neutral-300 font-semibold block">Vorgegebene Zugangsdaten:</span>
-            Benutzer: <span className="text-lime-400 font-bold">admin</span> • Passwort: <span className="text-lime-400 font-bold">donquijote</span>
-          </div>
-          <button
-            type="button"
-            onClick={handleAutoFill}
-            className="px-2.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-lime-400 text-[11px] font-bold rounded-lg border border-neutral-700 transition flex items-center gap-1 shrink-0"
-          >
-            <Sparkles className="w-3 h-3" />
-            <span>Ausfüllen</span>
-          </button>
-        </div>
-
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -162,7 +139,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="z. B. admin"
+                placeholder="admin"
                 required
                 autoFocus
                 className="w-full pl-10 pr-4 py-2.5 bg-neutral-950 border border-neutral-700 rounded-xl text-white placeholder-neutral-500 text-sm focus:outline-none focus:border-lime-400 transition"
@@ -182,9 +159,8 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
                 required
-                className="w-full pl-10 pr-11 py-2.5 bg-neutral-950 border border-neutral-700 rounded-xl text-white placeholder-neutral-500 text-sm focus:outline-none focus:border-lime-400 transition"
+                className="w-full pl-10 pr-11 py-2.5 bg-neutral-950 border border-neutral-700 rounded-xl text-white text-sm focus:outline-none focus:border-lime-400 transition"
               />
               <button
                 type="button"

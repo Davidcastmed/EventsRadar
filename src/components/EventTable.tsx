@@ -334,8 +334,157 @@ export const EventTable: React.FC<EventTableProps> = ({
         </div>
       </div>
 
-      {/* Main Responsive Table */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-2xl">
+      {/* MOBILE SMARTPHONE CARD VIEW (Visible only on mobile screens < 768px) */}
+      <div className="md:hidden space-y-3.5">
+        {filteredEvents.length === 0 ? (
+          <div className="p-8 text-center bg-neutral-900 border border-neutral-800 rounded-2xl text-neutral-400 font-mono text-xs">
+            Keine Events für die gewählten Filterkriterien gefunden.
+          </div>
+        ) : (
+          filteredEvents.map((evt) => {
+            const club = clubMap.get(evt.clubId);
+            const isToday = evt.date === '2026-10-31';
+            const priceText = evt.price.presale 
+              ? `${evt.price.presale}€ (VVK)` 
+              : evt.price.door 
+              ? `${evt.price.door}€ (AK)` 
+              : 'Eintritt vor Ort';
+            const gmapsUrl = club 
+              ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(club.name + ' ' + club.address + ' ' + (club.city || 'Hamburg'))}`
+              : '#';
+
+            return (
+              <div 
+                key={evt.id}
+                className="bg-neutral-900/90 border border-neutral-800 rounded-2xl p-4 shadow-lg space-y-3 font-mono relative overflow-hidden"
+              >
+                {/* Accent top stripe for today's events */}
+                {isToday && (
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-lime-400"></div>
+                )}
+
+                {/* Top Row: Date, Time & City Badge */}
+                <div className="flex items-center justify-between text-xs pt-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-white font-bold flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-lime-400" />
+                      <span>{evt.date} • {evt.startTime} Uhr</span>
+                    </span>
+                    {isToday && (
+                      <span className="px-1.5 py-0.5 rounded bg-lime-950 border border-lime-500/50 text-lime-400 text-[10px] font-black animate-pulse">
+                        HEUTE NACHT
+                      </span>
+                    )}
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-neutral-800 text-lime-400 text-[10px] font-bold">
+                    {evt.city || club?.city || 'Hamburg'}
+                  </span>
+                </div>
+
+                {/* Title & Club Name */}
+                <div>
+                  <h3 className="text-base font-bold text-white tracking-tight leading-snug">
+                    {evt.title}
+                  </h3>
+                  <div className="flex items-center gap-1.5 text-xs text-neutral-300 mt-0.5">
+                    <MapPin className="w-3 h-3 text-neutral-400 shrink-0" />
+                    <span className="font-semibold text-lime-300">{evt.clubName}</span>
+                    {club && <span className="text-neutral-500">• {club.district}</span>}
+                  </div>
+                </div>
+
+                {/* Lineup / DJs */}
+                {evt.lineup && evt.lineup.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {evt.lineup.map((dj, i) => (
+                      <span 
+                        key={i}
+                        className="px-2 py-0.5 rounded-md bg-neutral-950 border border-neutral-800 text-[11px] text-neutral-200"
+                      >
+                        {dj.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Genres & Price Info */}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-1 border-t border-neutral-800/80">
+                  <div className="text-neutral-400 text-[11px]">
+                    <span className="text-neutral-200 font-semibold">{priceText}</span>
+                    {club && (
+                      <span className="ml-2 text-neutral-500">| Tür: {club.doorPolicy.strictness}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] text-purple-400">
+                    <HeartHandshake className="w-3 h-3" />
+                    <span>Awareness aktiv</span>
+                  </div>
+                </div>
+
+                {/* Mobile Action Buttons Bar */}
+                <div className="flex items-center gap-2 pt-1.5">
+                  <a
+                    href={evt.ticketUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 bg-lime-400 active:bg-lime-300 text-black font-black text-xs rounded-xl shadow-md transition"
+                  >
+                    <Ticket className="w-4 h-4" />
+                    <span>Tickets</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+
+                  <a
+                    href={gmapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Google Maps Navigation"
+                    className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 bg-neutral-800 active:bg-neutral-700 text-neutral-200 border border-neutral-700 rounded-xl transition"
+                  >
+                    <MapPin className="w-4 h-4 text-lime-400" />
+                  </a>
+
+                  {club && (
+                    <button
+                      onClick={() => onNavigateToMap(club.id)}
+                      title="Auf Karte anzeigen"
+                      className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 bg-neutral-800 active:bg-neutral-700 text-neutral-200 border border-neutral-700 rounded-xl transition"
+                    >
+                      <Navigation className="w-4 h-4 text-yellow-400" />
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => onSelectEvent(evt)}
+                    className="min-h-[44px] px-3 flex items-center justify-center gap-1 bg-neutral-800 active:bg-neutral-700 text-neutral-200 text-xs font-semibold border border-neutral-700 rounded-xl transition"
+                  >
+                    <span>Fakten</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-neutral-400" />
+                  </button>
+
+                  {currentUser && onDeleteEvent && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Event "${evt.title}" wirklich löschen?`)) {
+                          onDeleteEvent(evt.id);
+                        }
+                      }}
+                      title="Event löschen"
+                      className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 bg-red-950/60 active:bg-red-900 text-red-400 border border-red-800 rounded-xl transition"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Main Responsive Table (Desktop / Tablet Screens md+) */}
+      <div className="hidden md:block bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
