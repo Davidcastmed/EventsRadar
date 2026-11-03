@@ -16,7 +16,8 @@ import {
   Download,
   CheckCircle2,
   AlertCircle,
-  HeartHandshake
+  HeartHandshake,
+  AlertTriangle
 } from 'lucide-react';
 
 interface EventDetailModalProps {
@@ -46,14 +47,15 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
   // Calendar .ics download generator
   const downloadIcs = () => {
     const startIso = event.date.replace(/-/g, '') + 'T' + event.startTime.replace(':', '') + '00';
+    const lineupSummary = event.lineup.map((l) => typeof l === 'string' ? l : l.name).join(', ');
     const icsData = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//KRAFTWERK Hamburg Techno Radar//DE',
       'BEGIN:VEVENT',
-      `SUMMARY:${event.title} @ ${event.clubName}`,
-      `DESCRIPTION:${event.description}\\nLineup: ${event.lineup.map((l) => l.name).join(', ')}\\nTickets: ${event.ticketUrl}`,
-      `LOCATION:${club ? club.name + ', ' + club.address + ', Hamburg' : event.clubName + ', Hamburg'}`,
+      `SUMMARY:${event.title} @ ${event.venue || event.clubName}`,
+      `DESCRIPTION:${event.description || ''}\\nLineup: ${lineupSummary}\\nTickets: ${event.ticketUrl || 'Abendkasse'}`,
+      `LOCATION:${event.venueAddress || (club ? club.name + ', ' + club.address + ', ' + (club.city || 'Hamburg') : (event.venue || event.clubName) + ', ' + (event.city || 'Hamburg'))}`,
       `DTSTART:${startIso}`,
       `DTEND:${event.date.replace(/-/g, '')}T235959`,
       'END:VEVENT',
@@ -71,25 +73,53 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
   };
 
   const city = event.city || club?.city || 'Hamburg';
-  const mapsUrl = club
+  const displayVenue = event.venue || event.clubName;
+  const displayAddress = event.venueAddress || (club ? `${club.name} • ${club.address}, ${club.postalCode || ''} ${city}` : `${displayVenue}, ${city}`);
+  
+  const mapsUrl = event.coordinates?.lat && event.coordinates?.lng
+    ? `https://www.google.com/maps/search/?api=1&query=${event.coordinates.lat},${event.coordinates.lng}`
+    : club
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(club.name + ' ' + club.address + ' ' + city)}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.clubName + ' ' + city)}`;
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(displayVenue + ' ' + (event.venueAddress || city))}`;
 
   const transitUrl = club
-    ? (city === 'Berlin'
+    ? (city.toLowerCase() === 'berlin'
         ? `https://www.bvg.de/de/verbindungen/verbindungssuche?to=${encodeURIComponent(club.transit.station)}`
         : `https://www.hvv.de/de/fahrplaene/abfahrt-ankunft?destination=${encodeURIComponent(club.transit.station)}`)
-    : (city === 'Berlin' ? 'https://www.bvg.de' : 'https://www.hvv.de');
+    : (city.toLowerCase() === 'berlin' ? 'https://www.bvg.de' : 'https://www.hvv.de');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md overflow-y-auto">
       <div className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl text-neutral-100 flex flex-col my-auto">
         
+        {/* Flyer banner if available */}
+        {event.flyerUrl && (
+          <div className="relative w-full h-44 sm:h-56 bg-neutral-950 overflow-hidden border-b border-neutral-800">
+            <img 
+              src={event.flyerUrl} 
+              alt={event.title} 
+              className="w-full h-full object-cover object-center filter brightness-90 hover:scale-105 transition duration-700"
+              onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-900/40 to-transparent" />
+            <div className="absolute bottom-3 left-4 sm:left-6 flex items-center gap-2">
+              <span className="px-2 py-0.5 bg-black/80 backdrop-blur text-lime-400 font-mono text-[11px] rounded border border-lime-400/40">
+                OFFIZIELLER FLYER
+              </span>
+              {event.fingerprint && (
+                <span className="px-2 py-0.5 bg-neutral-900/90 text-neutral-400 font-mono text-[10px] rounded hidden sm:inline truncate max-w-xs">
+                  ID: {event.id}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Header bar */}
         <div className="sticky top-0 z-20 flex items-center justify-between p-4 sm:p-6 bg-neutral-900/95 backdrop-blur border-b border-neutral-800">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="px-2.5 py-1 text-xs font-mono font-bold uppercase rounded bg-lime-400 text-black">
-              {event.clubName}
+              {displayVenue}
             </span>
             {event.isAgentDiscovered && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-mono rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
@@ -97,13 +127,23 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
                 Vom KI-Agenten entdeckt
               </span>
             )}
+            {event.isOpenAir && (
+              <span className="px-2 py-0.5 text-xs font-mono rounded bg-cyan-950 text-cyan-300 border border-cyan-700">
+                Open Air
+              </span>
+            )}
+            {event.isFree && (
+              <span className="px-2 py-0.5 text-xs font-mono rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold">
+                Eintritt Frei
+              </span>
+            )}
             <span className="text-xs text-neutral-400 hidden sm:inline">
-              {event.city || club?.city || 'Hamburg'}, Deutschland
+              {event.neighborhood ? `${event.neighborhood}, ` : ''}{city}, Deutschland
             </span>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition shrink-0"
             aria-label="Schließen"
           >
             <X className="w-5 h-5" />
@@ -112,22 +152,37 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
 
         {/* Hero Section */}
         <div className="p-4 sm:p-6 border-b border-neutral-800 bg-gradient-to-b from-neutral-800/40 to-transparent">
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">
-            {event.title}
-          </h2>
-          {event.subtitle && (
-            <p className="text-sm sm:text-base text-neutral-400 font-mono mb-4">
-              {event.subtitle}
-            </p>
-          )}
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-2">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                {event.title}
+              </h2>
+              {event.subtitle && (
+                <p className="text-sm sm:text-base text-neutral-400 font-mono mt-1">
+                  {event.subtitle}
+                </p>
+              )}
+            </div>
+            {event.attendeesCount != null && event.attendeesCount > 0 && (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-800/80 border border-cyan-500/30 rounded-lg text-cyan-300 font-mono text-xs shrink-0 self-start">
+                <span className="text-base">👥</span>
+                <div>
+                  <span className="font-bold text-sm text-cyan-200">{event.attendeesCount}</span>
+                  <span className="text-[11px] text-neutral-400 ml-1">Zusagen</span>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Quick Info Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs sm:text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs sm:text-sm mt-4">
             <div className="bg-neutral-950/70 p-3 rounded-lg border border-neutral-800 flex items-start gap-2.5">
               <Calendar className="w-4 h-4 text-lime-400 mt-0.5 shrink-0" />
               <div>
                 <div className="text-neutral-400 text-xs">Datum</div>
-                <div className="font-semibold capitalize text-white">{dateFormatted}</div>
+                <div className="font-semibold capitalize text-white">
+                  {event.dateLabel || dateFormatted}
+                </div>
               </div>
             </div>
 
@@ -144,8 +199,19 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
               <div>
                 <div className="text-neutral-400 text-xs">Eintritt</div>
                 <div className="font-semibold text-lime-300">
-                  {event.price.presale ? `VVK: ${event.price.presale} €` : ''} 
-                  {event.price.door ? ` | AK: ${event.price.door} €` : ''}
+                  {event.isFree ? (
+                    <span className="text-emerald-400 font-bold">Freier Eintritt</span>
+                  ) : event.entryFee ? (
+                    event.entryFee
+                  ) : event.priceNumeric != null ? (
+                    `${event.priceNumeric} €`
+                  ) : event.price?.presale != null ? (
+                    `VVK: ${event.price.presale} €${event.price?.door != null ? ` | AK: ${event.price.door} €` : ''}`
+                  ) : event.price?.door != null ? (
+                    `AK: ${event.price.door} €`
+                  ) : (
+                    'Keine Web-Angabe'
+                  )}
                 </div>
               </div>
             </div>
@@ -153,9 +219,9 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
             <div className="bg-neutral-950/70 p-3 rounded-lg border border-neutral-800 flex items-start gap-2.5">
               <MapPin className="w-4 h-4 text-lime-400 mt-0.5 shrink-0" />
               <div>
-                <div className="text-neutral-400 text-xs">Stadtteil</div>
-                <div className="font-semibold text-white truncate max-w-[140px]">
-                  {club ? `${club.neighborhood}` : 'Hamburg'}
+                <div className="text-neutral-400 text-xs">Location / Viertel</div>
+                <div className="font-semibold text-white truncate max-w-[140px]" title={displayVenue}>
+                  {event.neighborhood || club?.neighborhood || displayVenue}
                 </div>
               </div>
             </div>
@@ -176,34 +242,76 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
 
         {/* Main Body */}
         <div className="p-4 sm:p-6 space-y-6">
+
+          {/* MISSING ATTRIBUTES / ZERO-HALLUZINATION NOTIFICATION BANNER - HIGH VISIBILITY */}
+          {event.missingAttributes && event.missingAttributes.length > 0 && (
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-950/80 via-neutral-950 to-neutral-950 border-2 border-amber-500 rounded-xl space-y-3 shadow-lg shadow-amber-950/50">
+              <div className="flex items-center gap-2 text-amber-400 font-bold text-sm sm:text-base font-mono">
+                <AlertTriangle className="w-5 h-5 shrink-0 text-amber-400 animate-pulse" />
+                <span>⚠️ ZERO-HALLUZINATION: {event.missingAttributes.length} WEB-ATTRIBUTE FEHLEN (NICHT ERFUNDEN)</span>
+              </div>
+              <p className="font-sans text-neutral-200 text-xs sm:text-sm leading-relaxed">
+                Gemäß strikter Vorgabe wurden für dieses Event <strong>keinerlei Daten erfunden oder fingiert</strong>. Folgende Attribute konnten in offiziellen Webquellen nicht verifiziert werden und wurden explizit leer gelassen:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-1">
+                {event.missingAttributes.map((attr, idx) => (
+                  <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-black/80 border border-rose-500/80 rounded-lg text-rose-300 font-mono text-xs shadow-sm">
+                    <span className="text-rose-400 font-bold">❌</span>
+                    <span className="font-bold">{attr}:</span>
+                    <span className="text-neutral-400">Nicht ermittelt</span>
+                  </div>
+                ))}
+              </div>
+              {event.searchSuggestions && event.searchSuggestions.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-amber-900/60 font-sans text-neutral-300">
+                  <span className="font-bold text-amber-300 block font-mono text-xs mb-1.5">
+                    💡 Tipps zur Suchverbesserung für den nächsten Scan:
+                  </span>
+                  <ul className="list-disc list-inside space-y-1 text-neutral-300 text-xs">
+                    {event.searchSuggestions.map((sugg, sIdx) => (
+                      <li key={sIdx} className="text-neutral-300 font-mono text-[11px]">{sugg}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
           
           {/* Action Callouts: Buy Tickets & Navigation */}
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between p-4 bg-lime-950/20 border border-lime-500/30 rounded-xl">
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-lime-300">
-                  Ticket-Status: {event.ticketStatus}
+                  Ticket-Status: {event.ticketStatus || (event.ticketUrl ? 'Verfügbar' : 'Nur Abendkasse')}
                 </span>
-                <span className="text-xs text-neutral-400 font-mono">
-                  (via {event.ticketProvider})
-                </span>
+                {event.ticketProvider && (
+                  <span className="text-xs text-neutral-400 font-mono">
+                    (via {event.ticketProvider})
+                  </span>
+                )}
               </div>
               <p className="text-xs text-neutral-300 mt-0.5">
-                {event.price.notes || 'Offizieller Vorverkauf. Gültigen Lichtbildausweis mitführen.'}
+                {event.price?.notes || 'Gültigen Lichtbildausweis mitführen.'}
               </p>
             </div>
 
             <div className="flex items-center gap-2">
-              <a
-                href={event.ticketUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-lime-400 hover:bg-lime-300 text-black font-semibold text-sm rounded-lg transition shadow-lg shadow-lime-400/10"
-              >
-                <Ticket className="w-4 h-4" />
-                Tickets kaufen
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+              {event.ticketUrl ? (
+                <a
+                  href={event.ticketUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-lime-400 hover:bg-lime-300 text-black font-semibold text-sm rounded-lg transition shadow-lg shadow-lime-400/10"
+                >
+                  <Ticket className="w-4 h-4" />
+                  Tickets kaufen
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              ) : (
+                <div className="px-3.5 py-2.5 bg-rose-950/60 border border-rose-600/70 text-rose-300 text-xs font-mono font-bold rounded-lg flex items-center gap-1.5">
+                  <span>⚠️ Kein Ticketlink im Web (Nicht erfunden)</span>
+                </div>
+              )}
 
               <button
                 onClick={downloadIcs}
@@ -225,6 +333,11 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
             <p className="text-xs text-neutral-100 font-medium leading-relaxed bg-neutral-900/80 p-2.5 rounded border border-purple-500/20">
               <strong>Awareness-Team available, if you feel uncomfortable please ask our staff for help, Please note that we are place with zero tolerance for racism, fascism or any kind of discrimination.</strong>
             </p>
+            {event.awarenessInfo && (
+              <div className="p-2.5 bg-purple-950/30 rounded border border-purple-500/30 text-xs text-purple-200 font-mono">
+                🛡️ <strong>Club Awareness-Notiz:</strong> {event.awarenessInfo}
+              </div>
+            )}
             <p className="text-[11px] text-neutral-400 leading-relaxed pt-1 border-t border-neutral-800/80">
               Awareness-Team vor Ort verfügbar: Wenn du dich unwohl fühlst, wende dich bitte jederzeit an unser Personal oder die mobilen Awareness-Teams. Wir dulden keinerlei Rassismus, Faschismus, Sexismus, Queerfeindlichkeit oder Grenzverletzungen jeglicher Art.
             </p>
@@ -240,37 +353,67 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-              {event.lineup.map((artist, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 bg-neutral-950/80 border border-neutral-800 rounded-lg flex flex-col justify-between"
-                >
-                  <div className="flex items-start justify-between gap-1">
-                    <span className="font-bold text-sm text-neutral-100">
-                      {artist.name}
-                    </span>
-                    {artist.role && (
-                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded uppercase ${
-                        artist.role === 'Headliner'
-                          ? 'bg-lime-400/20 text-lime-300 border border-lime-400/30'
-                          : artist.role === 'Live Act'
-                          ? 'bg-fuchsia-950 text-fuchsia-400 border border-fuchsia-800'
-                          : 'bg-neutral-800 text-neutral-400'
-                      }`}>
-                        {artist.role}
+              {event.lineup.map((artist, idx) => {
+                const artistName = typeof artist === 'string' ? artist : artist.name;
+                const artistRole = typeof artist === 'object' ? artist.role : undefined;
+                const artistOrigin = typeof artist === 'object' ? artist.origin : undefined;
+                const artistGenre = typeof artist === 'object' ? artist.genreFocus : undefined;
+                return (
+                  <div
+                    key={idx}
+                    className="p-3 bg-neutral-950/80 border border-neutral-800 rounded-lg flex flex-col justify-between"
+                  >
+                    <div className="flex items-start justify-between gap-1">
+                      <span className="font-bold text-sm text-neutral-100">
+                        {artistName}
                       </span>
+                      {artistRole && (
+                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded uppercase ${
+                          artistRole === 'Headliner'
+                            ? 'bg-lime-400/20 text-lime-300 border border-lime-400/30'
+                            : artistRole === 'Live Act'
+                            ? 'bg-fuchsia-950 text-fuchsia-400 border border-fuchsia-800'
+                            : 'bg-neutral-800 text-neutral-400'
+                        }`}>
+                          {artistRole}
+                        </span>
+                      )}
+                    </div>
+                    {(artistOrigin || artistGenre) && (
+                      <div className="mt-2 text-xs text-neutral-400 font-mono flex items-center justify-between">
+                        <span>{artistOrigin || ''}</span>
+                        <span className="text-neutral-500 italic truncate max-w-[120px]">{artistGenre || ''}</span>
+                      </div>
                     )}
                   </div>
-                  {(artist.origin || artist.genreFocus) && (
-                    <div className="mt-2 text-xs text-neutral-400 font-mono flex items-center justify-between">
-                      <span>{artist.origin || ''}</span>
-                      <span className="text-neutral-500 italic truncate max-w-[120px]">{artist.genreFocus || ''}</span>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
+
+          {/* Attendees / Community list if present */}
+          {((event.attendeeNames && event.attendeeNames.length > 0) || (event.attendeesCount != null && event.attendeesCount > 0)) && (
+            <div className="p-4 bg-neutral-950/70 border border-neutral-800 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold uppercase text-neutral-300 flex items-center gap-2">
+                  <span>👥 Zusagen & Community</span>
+                  <span className="px-2 py-0.5 bg-neutral-800 text-cyan-300 rounded text-[11px]">
+                    {event.attendeesCount ?? event.attendeeNames?.length} Vormerkungen
+                  </span>
+                </span>
+              </div>
+              {event.attendeeNames && event.attendeeNames.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {event.attendeeNames.map((name, i) => (
+                    <span key={i} className="px-2.5 py-1 bg-neutral-900 border border-neutral-700 text-neutral-200 text-xs font-mono rounded-full flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Description */}
           <div className="p-4 bg-neutral-950/60 border border-neutral-800 rounded-xl">
@@ -378,15 +521,23 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
           <div className="p-4 sm:p-5 bg-neutral-950/90 border border-neutral-800 rounded-xl">
             <h3 className="text-base font-bold uppercase tracking-wider text-neutral-200 mb-3 flex items-center gap-2 font-mono">
               <Navigation className="w-4 h-4 text-lime-400" />
-              Standort & Öffentlicher Nahverkehr (HVV Hamburg)
+              Standort & Öffentlicher Nahverkehr ({city.toLowerCase() === 'berlin' ? 'BVG Berlin' : 'HVV Hamburg'})
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <div className="text-xs font-mono text-neutral-400 mb-1">Adresse:</div>
+                <div className="text-xs font-mono text-neutral-400 mb-1">Veranstaltungsort & Adresse:</div>
                 <div className="text-sm font-semibold text-white">
-                  {club ? `${club.name} • ${club.address}, ${club.postalCode} Hamburg` : `${event.clubName}, Hamburg`}
+                  {displayVenue}
                 </div>
+                <div className="text-xs text-neutral-300 font-mono mt-0.5">
+                  {event.venueAddress || displayAddress}
+                </div>
+                {event.coordinates && event.coordinates.lat && event.coordinates.lng && (
+                  <div className="mt-1 text-[11px] font-mono text-lime-400/90">
+                    GPS-Koordinaten: {event.coordinates.lat.toFixed(5)}, {event.coordinates.lng.toFixed(5)}
+                  </div>
+                )}
                 {club && (
                   <div className="mt-2 text-xs text-neutral-300 space-y-1">
                     <p><strong className="text-neutral-400">Nächste Station:</strong> {club.transit.station}</p>
@@ -416,7 +567,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
                   className="flex items-center justify-center gap-2 px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-xs font-semibold rounded-lg text-white border border-neutral-700 transition"
                 >
                   <Navigation className="w-3.5 h-3.5 text-yellow-400" />
-                  {city === 'Berlin' ? 'BVG' : 'HVV'} Fahrplanauskunft
+                  {city.toLowerCase() === 'berlin' ? 'BVG' : 'HVV'} Fahrplanauskunft
                   <ExternalLink className="w-3 h-3 text-neutral-400 ml-auto" />
                 </a>
 
@@ -436,10 +587,26 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Metadata & Source Audit */}
-          <div className="pt-2 border-t border-neutral-800/80 flex flex-wrap items-center justify-between text-[11px] text-neutral-500 font-mono">
-            <span>Quelle: {event.source}</span>
-            <span>Erfasst am: {new Date(event.discoveredAt).toLocaleString('de-DE')}</span>
+          {/* Metadata & Source Audit (All 28 Attributes traceable) */}
+          <div className="pt-3 border-t border-neutral-800/80 space-y-2 text-[11px] text-neutral-400 font-mono">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span>ID: <strong className="text-neutral-200">{event.id}</strong></span>
+              <span>Erstellt von: <strong className="text-neutral-200">{event.createdBy || event.source}</strong></span>
+              <span>Synchronisiert: <strong className="text-neutral-200">{new Date(event.createdAt || event.discoveredAt || Date.now()).toLocaleString('de-DE')}</strong></span>
+            </div>
+            {(event.sources || event.externalIds || event.fingerprint) && (
+              <div className="p-2.5 bg-neutral-950/80 rounded border border-neutral-800/80 flex flex-col gap-1 text-[10px]">
+                {event.fingerprint && (
+                  <div>Fingerprint: <span className="text-neutral-300">{event.fingerprint}</span></div>
+                )}
+                {event.externalIds && Object.keys(event.externalIds).length > 0 && (
+                  <div>Externe IDs: <span className="text-cyan-300">{JSON.stringify(event.externalIds)}</span></div>
+                )}
+                {event.sources && event.sources.length > 0 && (
+                  <div>Quellen-Historie: <span className="text-lime-300">{event.sources.join(', ')}</span></div>
+                )}
+              </div>
+            )}
           </div>
 
         </div>

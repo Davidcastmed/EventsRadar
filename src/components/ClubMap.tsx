@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Club, TechnoEvent } from '../types';
-import { MapPin, Navigation, ExternalLink, Calendar, Volume2, ShieldAlert, Compass, HeartHandshake } from 'lucide-react';
+import { MapPin, Navigation, ExternalLink, Calendar, Volume2, ShieldAlert, Compass, HeartHandshake, AlertTriangle } from 'lucide-react';
 
 interface ClubMapProps {
   clubs: Club[];
@@ -274,9 +274,16 @@ export const ClubMap: React.FC<ClubMapProps> = ({
               <div>
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className="px-2 py-0.5 rounded bg-lime-400 text-black text-[10px] font-mono font-bold uppercase">
-                      {activeClub.city || 'Hamburg'} • {activeClub.neighborhood}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="px-2 py-0.5 rounded bg-lime-400 text-black text-[10px] font-mono font-bold uppercase">
+                        {activeClub.city || 'Hamburg'} • {activeClub.neighborhood}
+                      </span>
+                      {activeClub.badge && (
+                        <span className="px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-700 text-[10px] font-mono font-bold uppercase">
+                          ★ {activeClub.badge}
+                        </span>
+                      )}
+                    </div>
                     <h3 className="text-lg sm:text-xl font-bold text-white mt-1">
                       {activeClub.name}
                     </h3>
@@ -291,8 +298,44 @@ export const ClubMap: React.FC<ClubMapProps> = ({
                   )}
                 </div>
                 <p className="text-xs text-neutral-400 mt-1 font-mono">
-                  {activeClub.address}, {activeClub.postalCode} {activeClub.city || 'Hamburg'}
+                  {activeClub.address || <span className="text-rose-400">Keine Adresse ermittelt</span>}, {activeClub.postalCode} {activeClub.city || 'Hamburg'}
                 </p>
+              </div>
+
+              {/* ZERO-HALLUZINATION WARNING: MISSING ATTRIBUTES */}
+              {activeClub.missingAttributes && activeClub.missingAttributes.length > 0 && (
+                <div className="p-2.5 bg-amber-950/80 border-2 border-amber-500 rounded-xl text-amber-200 text-xs font-mono space-y-1">
+                  <div className="flex items-center gap-1.5 text-amber-400 font-bold uppercase text-[10px]">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
+                    <span>⚠️ {activeClub.missingAttributes.length} Web-Attribute fehlen</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1 pt-0.5">
+                    {activeClub.missingAttributes.map((attr: string, idx: number) => (
+                      <span key={idx} className="px-1.5 py-0.2 bg-black/80 border border-rose-500/70 text-rose-300 rounded text-[9px] font-bold">
+                        ❌ {attr}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Description */}
+              {activeClub.description && (
+                <p className="text-xs text-neutral-300 leading-relaxed font-sans">
+                  {activeClub.description}
+                </p>
+              )}
+
+              {/* Pricing & Outdoor badges */}
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                <div className="p-1.5 bg-neutral-950 rounded border border-neutral-800">
+                  <span className="text-neutral-500 block text-[9px]">Ø EINTRITT</span>
+                  <span className="text-lime-300 font-bold">{activeClub.entryAvg || <span className="text-rose-400 text-[10px]">Nicht ermittelt</span>}</span>
+                </div>
+                <div className="p-1.5 bg-neutral-950 rounded border border-neutral-800">
+                  <span className="text-neutral-500 block text-[9px]">OUTDOOR</span>
+                  <span className="text-emerald-300 font-bold">{activeClub.hasOutdoor ? 'Open Air / Garten' : 'Indoor'}</span>
+                </div>
               </div>
 
               {/* Transit info */}
@@ -302,11 +345,14 @@ export const ClubMap: React.FC<ClubMapProps> = ({
                   <span>Öffentlicher Nahverkehr ({activeClub.city === 'Berlin' ? 'BVG' : 'HVV'})</span>
                 </div>
                 <div className="text-neutral-400 text-[11px]">
-                  <strong>Station:</strong> {activeClub.transit.station} (~{activeClub.transit.walkMinutes} Min. Fußweg)
+                  <strong>Station:</strong> {activeClub.publicTransit || activeClub.transit?.station || 'Nicht ermittelt'}
+                  {activeClub.transit?.walkMinutes ? ` (~${activeClub.transit.walkMinutes} Min. Fußweg)` : ''}
                 </div>
-                <div className="text-neutral-500 text-[11px]">
-                  Linien: {activeClub.transit.lines.join(', ')}
-                </div>
+                {activeClub.transit?.lines && (
+                  <div className="text-neutral-500 text-[11px]">
+                    Linien: {activeClub.transit.lines.join(', ')}
+                  </div>
+                )}
               </div>
 
               {/* Sound System & Door */}
@@ -315,7 +361,7 @@ export const ClubMap: React.FC<ClubMapProps> = ({
                   <Volume2 className="w-4 h-4 text-lime-400 shrink-0 mt-0.5" />
                   <div>
                     <span className="text-neutral-400">Soundsystem:</span>{' '}
-                    <span className="text-neutral-200 font-mono text-[11px]">{activeClub.soundSystem}</span>
+                    <span className="text-neutral-200 font-mono text-[11px]">{activeClub.soundSystem || <span className="text-rose-400">Nicht ermittelt</span>}</span>
                   </div>
                 </div>
 
@@ -323,8 +369,10 @@ export const ClubMap: React.FC<ClubMapProps> = ({
                   <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                   <div>
                     <span className="text-neutral-400">Türselektion:</span>{' '}
-                    <span className="text-neutral-200 font-bold">{activeClub.doorPolicy.strictness}</span>
-                    <p className="text-[11px] text-neutral-400 mt-0.5">{activeClub.doorPolicy.tips}</p>
+                    <span className="text-neutral-200 font-bold">{activeClub.doorPolicy?.strictness || 'Moderat'}</span>
+                    {activeClub.doorPolicy?.tips && (
+                      <p className="text-[11px] text-neutral-400 mt-0.5">{activeClub.doorPolicy.tips}</p>
+                    )}
                   </div>
                 </div>
 
@@ -408,7 +456,7 @@ export const ClubMap: React.FC<ClubMapProps> = ({
                           {evt.title}
                         </div>
                         <div className="text-[10px] text-neutral-400 truncate mt-0.5">
-                          {evt.lineup.map((l) => l.name).join(', ')}
+                          {evt.lineup.map((l: any) => (typeof l === 'string' ? l : l.name)).join(', ')}
                         </div>
                       </div>
                     ))

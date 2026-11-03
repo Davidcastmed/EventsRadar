@@ -17,7 +17,8 @@ import {
   Plus,
   Trash2,
   ShieldCheck,
-  Navigation
+  Navigation,
+  AlertTriangle
 } from 'lucide-react';
 
 interface EventTableProps {
@@ -81,13 +82,17 @@ export const EventTable: React.FC<EventTableProps> = ({
   const filteredEvents = useMemo(() => {
     return events
       .filter((evt) => {
-        // Search term filter (Artist, event title, club name, genre)
+        // Search term filter (Artist, event title, venue name, genre)
         if (searchTerm.trim()) {
           const q = searchTerm.toLowerCase();
           const matchTitle = evt.title.toLowerCase().includes(q);
-          const matchClub = evt.clubName.toLowerCase().includes(q);
+          const venueName = evt.venue || evt.clubName || '';
+          const matchClub = venueName.toLowerCase().includes(q);
           const matchGenre = evt.genres.some((g) => g.toLowerCase().includes(q));
-          const matchArtist = evt.lineup.some((a) => a.name.toLowerCase().includes(q));
+          const matchArtist = evt.lineup.some((a) => {
+            const name = typeof a === 'string' ? a : a.name;
+            return name.toLowerCase().includes(q);
+          });
           if (!matchTitle && !matchClub && !matchGenre && !matchArtist) {
             return false;
           }
@@ -125,11 +130,13 @@ export const EventTable: React.FC<EventTableProps> = ({
         if (sortField === 'date') {
           cmp = a.date.localeCompare(b.date);
         } else if (sortField === 'price') {
-          const priceA = a.price.presale || a.price.door || 999;
-          const priceB = b.price.presale || b.price.door || 999;
+          const priceA = a.priceNumeric != null ? a.priceNumeric : (a.price?.presale || a.price?.door || 999);
+          const priceB = b.priceNumeric != null ? b.priceNumeric : (b.price?.presale || b.price?.door || 999);
           cmp = priceA - priceB;
         } else if (sortField === 'club') {
-          cmp = a.clubName.localeCompare(b.clubName);
+          const nameA = a.venue || a.clubName || '';
+          const nameB = b.venue || b.clubName || '';
+          cmp = nameA.localeCompare(nameB);
         }
         return sortOrder === 'asc' ? cmp : -cmp;
       });
@@ -344,14 +351,20 @@ export const EventTable: React.FC<EventTableProps> = ({
           filteredEvents.map((evt) => {
             const club = clubMap.get(evt.clubId);
             const isToday = evt.date === '2026-10-31';
-            const priceText = evt.price.presale 
+            const venueName = evt.venue || evt.clubName || club?.name || 'Club';
+            const dateLabelText = evt.dateLabel || `${evt.date} • ${evt.startTime} Uhr`;
+            const priceText = evt.entryFee 
+              ? evt.entryFee 
+              : evt.priceNumeric != null 
+              ? `${evt.priceNumeric}€` 
+              : evt.price?.presale != null 
               ? `${evt.price.presale}€ (VVK)` 
-              : evt.price.door 
+              : evt.price?.door != null 
               ? `${evt.price.door}€ (AK)` 
-              : 'Eintritt vor Ort';
+              : (evt.isFree ? 'Freier Eintritt' : (evt.price?.notes || 'Eintritt unbestätigt / vor Ort'));
             const gmapsUrl = club 
-              ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(club.name + ' ' + club.address + ' ' + (club.city || 'Hamburg'))}`
-              : '#';
+              ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((club.name || venueName) + ' ' + (evt.venueAddress || club.address) + ' ' + (club.city || evt.city || 'Hamburg'))}`
+              : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venueName + ' ' + (evt.venueAddress || evt.city || 'Hamburg'))}`;
 
             return (
               <div 
@@ -363,47 +376,87 @@ export const EventTable: React.FC<EventTableProps> = ({
                   <div className="absolute top-0 left-0 right-0 h-1 bg-lime-400"></div>
                 )}
 
-                {/* Top Row: Date, Time & City Badge */}
+                {/* Top Row: Date, Time, Badges & City */}
                 <div className="flex items-center justify-between text-xs pt-0.5">
                   <div className="flex items-center gap-2">
                     <span className="text-white font-bold flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-lime-400" />
-                      <span>{evt.date} • {evt.startTime} Uhr</span>
+                      <span>{dateLabelText}</span>
                     </span>
                     {isToday && (
                       <span className="px-1.5 py-0.5 rounded bg-lime-950 border border-lime-500/50 text-lime-400 text-[10px] font-black animate-pulse">
                         HEUTE NACHT
                       </span>
                     )}
+                    {evt.isOpenAir && (
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500/50 text-emerald-300 text-[10px] font-bold">
+                        OPEN AIR
+                      </span>
+                    )}
+                    {evt.isFree && (
+                      <span className="px-1.5 py-0.5 rounded bg-lime-950 border border-lime-400 text-lime-400 text-[10px] font-bold">
+                        FREI
+                      </span>
+                    )}
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-neutral-800 text-lime-400 text-[10px] font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-neutral-800 text-lime-400 text-[10px] font-bold uppercase">
                     {evt.city || club?.city || 'Hamburg'}
                   </span>
                 </div>
 
-                {/* Title & Club Name */}
+                {/* Title & Venue Name */}
                 <div>
                   <h3 className="text-base font-bold text-white tracking-tight leading-snug">
                     {evt.title}
                   </h3>
                   <div className="flex items-center gap-1.5 text-xs text-neutral-300 mt-0.5">
                     <MapPin className="w-3 h-3 text-neutral-400 shrink-0" />
-                    <span className="font-semibold text-lime-300">{evt.clubName}</span>
-                    {club && <span className="text-neutral-500">• {club.district}</span>}
+                    <span className="font-semibold text-lime-300">{venueName}</span>
+                    {(evt.neighborhood || club?.neighborhood) && (
+                      <span className="text-neutral-500">• {evt.neighborhood || club?.neighborhood}</span>
+                    )}
+                    {(evt.attendeesCount ?? 0) > 0 && (
+                      <span className="ml-auto text-[10px] text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800">
+                        👥 {evt.attendeesCount}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* Lineup / DJs */}
+                {/* Missing Attributes Notification (Zero-Halluzination) - Prominent Notice */}
+                {evt.missingAttributes && evt.missingAttributes.length > 0 && (
+                  <div className="p-2.5 bg-amber-950/70 border-2 border-amber-500 rounded-xl text-amber-200 text-xs font-mono space-y-1">
+                    <div className="flex items-center gap-1.5 text-amber-400 font-bold uppercase text-[11px]">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+                      <span>⚠️ ZERO-HALLUZINATION: {evt.missingAttributes.length} Attribute fehlen im Web</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 pt-0.5">
+                      {evt.missingAttributes.map((attr, i) => (
+                        <span key={i} className="px-1.5 py-0.5 bg-neutral-950 text-rose-300 border border-rose-500/80 rounded text-[10px] font-bold">
+                          ❌ {attr}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-neutral-400 font-sans">
+                      Nicht im Web auffindbar – absichtlich leer gelassen (keine Daten erfunden).
+                    </p>
+                  </div>
+                )}
+
+                {/* Lineup / DJs (supports string[] or DJArtist[]) */}
                 {evt.lineup && evt.lineup.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-0.5">
-                    {evt.lineup.map((dj, i) => (
-                      <span 
-                        key={i}
-                        className="px-2 py-0.5 rounded-md bg-neutral-950 border border-neutral-800 text-[11px] text-neutral-200"
-                      >
-                        {dj.name}
-                      </span>
-                    ))}
+                    {evt.lineup.map((dj, i) => {
+                      const djName = typeof dj === 'string' ? dj : dj.name;
+                      return (
+                        <span 
+                          key={i}
+                          className="px-2 py-0.5 rounded-md bg-neutral-950 border border-neutral-800 text-[11px] text-neutral-200"
+                        >
+                          {djName}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -423,16 +476,26 @@ export const EventTable: React.FC<EventTableProps> = ({
 
                 {/* Mobile Action Buttons Bar */}
                 <div className="flex items-center gap-2 pt-1.5">
-                  <a
-                    href={evt.ticketUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 bg-lime-400 active:bg-lime-300 text-black font-black text-xs rounded-xl shadow-md transition"
-                  >
-                    <Ticket className="w-4 h-4" />
-                    <span>Tickets</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                  {evt.ticketUrl ? (
+                    <a
+                      href={evt.ticketUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 bg-lime-400 active:bg-lime-300 text-black font-black text-xs rounded-xl shadow-md transition"
+                    >
+                      <Ticket className="w-4 h-4" />
+                      <span>Tickets</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ) : (
+                    <div
+                      className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 bg-neutral-950 text-neutral-400 font-semibold text-xs rounded-xl border border-neutral-800"
+                      title="Kein Online-Vorverkauf gefunden oder nur Abendkasse"
+                    >
+                      <Ticket className="w-4 h-4 text-neutral-500" />
+                      <span>{evt.ticketStatus || 'Kein Online-VVK'}</span>
+                    </div>
+                  )}
 
                   <a
                     href={gmapsUrl}
@@ -627,7 +690,7 @@ export const EventTable: React.FC<EventTableProps> = ({
                       {/* 2. Club & Stadtteil */}
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-neutral-100 flex items-center gap-1.5">
-                          <span>{evt.clubName}</span>
+                          <span>{evt.venue || evt.clubName}</span>
                           {evt.isAgentDiscovered && (
                             <span title="Vom KI-Agenten entdeckt">
                               <Sparkles className="w-3 h-3 text-cyan-400" />
@@ -639,11 +702,16 @@ export const EventTable: React.FC<EventTableProps> = ({
                             {evt.city || club?.city || 'Hamburg'}
                           </span>
                           <span className="px-1.5 py-0.2 rounded bg-neutral-800 font-mono text-[10px]">
-                            {club?.neighborhood || ''}
+                            {evt.neighborhood || club?.neighborhood || ''}
                           </span>
                           {club?.transit.station && (
                             <span className="text-neutral-500 truncate max-w-[100px] text-[10px]" title={club.transit.station}>
                               • {club.transit.station.split(' ')[0]}
+                            </span>
+                          )}
+                          {evt.attendeesCount != null && evt.attendeesCount > 0 && (
+                            <span className="text-cyan-400 text-[10px] font-mono ml-1">
+                              👥 {evt.attendeesCount}
                             </span>
                           )}
                         </div>
@@ -672,18 +740,40 @@ export const EventTable: React.FC<EventTableProps> = ({
                             </span>
                           )}
                         </div>
+                        {evt.missingAttributes && evt.missingAttributes.length > 0 && (
+                          <div 
+                            className="inline-flex flex-col gap-1 mt-2 p-1.5 bg-amber-950/80 border-2 border-amber-500 rounded-lg text-[10px] text-amber-200 font-mono shadow-md max-w-[280px]" 
+                            title={evt.missingNotice || `Fehlende Web-Daten: ${evt.missingAttributes.join(', ')} (nicht erfunden)`}
+                          >
+                            <div className="flex items-center gap-1.5 text-amber-300 font-bold">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
+                              <span>⚠️ {evt.missingAttributes.length} Attribute fehlen im Web</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {evt.missingAttributes.map((attr, idx) => (
+                                <span key={idx} className="px-1.5 py-0.2 bg-neutral-950 text-rose-300 border border-rose-500/70 rounded text-[9px] font-bold">
+                                  ❌ {attr}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </td>
 
                       {/* 4. Lineup / DJs */}
                       <td className="py-3.5 px-4">
                         <div className="space-y-1">
                           <div className="font-semibold text-neutral-200 line-clamp-1">
-                            {evt.lineup.slice(0, 3).map((artist, idx) => (
-                              <span key={idx} className={artist.role === 'Headliner' ? 'text-lime-300 font-bold' : ''}>
-                                {artist.name}
-                                {idx < Math.min(evt.lineup.length - 1, 2) ? ', ' : ''}
-                              </span>
-                            ))}
+                            {evt.lineup.slice(0, 3).map((artist, idx) => {
+                              const aName = typeof artist === 'string' ? artist : artist.name;
+                              const isHead = typeof artist === 'object' && artist?.role === 'Headliner';
+                              return (
+                                <span key={idx} className={isHead ? 'text-lime-300 font-bold' : ''}>
+                                  {aName}
+                                  {idx < Math.min(evt.lineup.length - 1, 2) ? ', ' : ''}
+                                </span>
+                              );
+                            })}
                           </div>
                           {evt.lineup.length > 3 && (
                             <div className="text-[10px] text-neutral-400 font-mono">
@@ -696,12 +786,29 @@ export const EventTable: React.FC<EventTableProps> = ({
                       {/* 5. Preise */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <div className="font-mono font-bold text-lime-300">
-                          {evt.price.presale ? `${evt.price.presale} €` : (evt.price.door ? `${evt.price.door} €` : 'N/A')}
+                          {evt.isFree 
+                            ? 'FREI'
+                            : evt.entryFee 
+                            ? evt.entryFee 
+                            : evt.priceNumeric != null 
+                            ? `${evt.priceNumeric} €`
+                            : (evt.price?.presale != null ? `${evt.price.presale} €` : (evt.price?.door != null ? `${evt.price.door} €` : (
+                              <span className="px-1.5 py-0.5 bg-rose-950/80 border border-rose-500/80 text-rose-300 text-[10px] font-mono font-bold rounded">
+                                ⚠️ Nicht ermittelt
+                              </span>
+                            )))}
                         </div>
-                        <div className="text-[10px] text-neutral-400 font-mono">
-                          {evt.price.presale && evt.price.door 
-                            ? `AK: ${evt.price.door} €`
-                            : (evt.price.presale ? 'VVK' : 'Nur Abendkasse')}
+                        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                          {evt.isOpenAir && (
+                            <span className="px-1 py-0.2 bg-cyan-950 text-cyan-400 border border-cyan-800 rounded text-[9px] font-mono">
+                              Open Air
+                            </span>
+                          )}
+                          {evt.hasPresale && (
+                            <span className="px-1 py-0.2 bg-lime-950 text-lime-400 border border-lime-800 rounded text-[9px] font-mono">
+                              VVK
+                            </span>
+                          )}
                         </div>
                       </td>
 
@@ -726,16 +833,25 @@ export const EventTable: React.FC<EventTableProps> = ({
 
                       {/* 7. Direkttickets */}
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <a
-                          href={evt.ticketUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-black font-bold text-xs rounded-lg transition shadow-md shadow-lime-400/10"
-                        >
-                          <Ticket className="w-3.5 h-3.5" />
-                          <span>Kaufen</span>
-                          <ExternalLink className="w-3 h-3 ml-0.5" />
-                        </a>
+                        {evt.ticketUrl ? (
+                          <a
+                            href={evt.ticketUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-lime-400 hover:bg-lime-300 text-black font-bold text-xs rounded-lg transition shadow-md shadow-lime-400/10"
+                          >
+                            <Ticket className="w-3.5 h-3.5" />
+                            <span>Kaufen</span>
+                            <ExternalLink className="w-3 h-3 ml-0.5" />
+                          </a>
+                        ) : (
+                          <span 
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-neutral-950 text-neutral-400 text-[11px] rounded-lg border border-neutral-800 font-mono"
+                            title="Kein Online-Vorverkauf gefunden (nicht erfunden)"
+                          >
+                            <span>Abendkasse</span>
+                          </span>
+                        )}
                         <div className="text-[10px] text-neutral-400 font-mono mt-1">
                           {evt.ticketProvider}
                         </div>

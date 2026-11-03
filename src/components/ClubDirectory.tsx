@@ -9,7 +9,10 @@ import {
   Navigation, 
   Search, 
   HeartHandshake,
-  Download
+  Download,
+  AlertTriangle,
+  TreePine,
+  DollarSign
 } from 'lucide-react';
 
 interface ClubDirectoryProps {
@@ -133,26 +136,32 @@ export const ClubDirectory: React.FC<ClubDirectoryProps> = ({
             >
               <div className="p-5 space-y-4">
                 
-                {/* Card Header */}
+                {/* Card Header & Badge */}
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5 mb-1">
                       <span className="px-2 py-0.5 rounded bg-lime-400 text-black text-[10px] font-mono font-bold uppercase">
                         {city}
                       </span>
                       <span className="px-2 py-0.5 rounded bg-neutral-800 text-neutral-300 text-[10px] font-mono font-bold uppercase">
                         {club.neighborhood}
                       </span>
-                      <span className="text-xs font-mono text-neutral-400">
-                        {club.district}
-                      </span>
+                      {club.badge ? (
+                        <span className="px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-700 text-[10px] font-mono font-bold uppercase">
+                          ★ {club.badge}
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded bg-rose-950/60 text-rose-300 border border-rose-500/60 text-[9px] font-mono font-bold">
+                          ⚠️ Kein Badge im Web
+                        </span>
+                      )}
                     </div>
-                    <h3 className="text-xl font-bold text-white mt-1.5">
+                    <h3 className="text-xl font-bold text-white">
                       {club.name}
                     </h3>
                   </div>
 
-                  <span className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold uppercase ${
+                  <span className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold uppercase shrink-0 ${
                     isStrict
                       ? 'bg-rose-950 text-rose-300 border border-rose-800'
                       : isModerate
@@ -163,24 +172,104 @@ export const ClubDirectory: React.FC<ClubDirectoryProps> = ({
                   </span>
                 </div>
 
-                {/* Address & Transit */}
-                <div className="text-xs text-neutral-300 space-y-1 font-mono">
-                  <div className="flex items-start gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-lime-400 shrink-0 mt-0.5" />
-                    <span>{club.address}, {club.postalCode} {city}</span>
+                {/* ZERO-HALLUZINATION WARNING: MISSING CLUB ATTRIBUTES (HIGH VISIBILITY) */}
+                {club.missingAttributes && club.missingAttributes.length > 0 && (
+                  <div className="p-3 bg-amber-950/70 border-2 border-amber-500 rounded-xl space-y-2 text-xs font-mono shadow-md">
+                    <div className="flex items-center gap-1.5 text-amber-300 font-bold uppercase text-[11px]">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+                      <span>⚠️ ZERO-HALLUZINATION: {club.missingAttributes.length} Club-Attribute fehlen im Web</span>
+                    </div>
+                    <p className="text-[11px] text-neutral-300 font-sans leading-snug">
+                      Gemäß Anweisung wurden <strong>keine Daten erfunden</strong>. Folgende Attribute wurden in offiziellen Quellen nicht verifiziert und blieben leer:
+                    </p>
+                    <div className="flex flex-wrap gap-1 pt-0.5">
+                      {club.missingAttributes.map((attr, idx) => (
+                        <span key={idx} className="px-2 py-0.5 bg-black/80 border border-rose-500/80 text-rose-300 rounded text-[10px] font-bold">
+                          ❌ {attr}: Nicht ermittelt
+                        </span>
+                      ))}
+                    </div>
+                    {club.searchSuggestions && club.searchSuggestions.length > 0 && (
+                      <div className="pt-1.5 border-t border-amber-900/60 text-[10px] text-neutral-300 font-sans">
+                        💡 Tipp: {club.searchSuggestions[0]}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-start gap-1.5 text-neutral-400 text-[11px]">
-                    <Navigation className="w-3.5 h-3.5 text-yellow-400 shrink-0 mt-0.5" />
-                    <span>
-                      {club.transit.station} ({club.transit.lines.join(', ')}) • ~{club.transit.walkMinutes} Min. Fußweg
+                )}
+
+                {/* Description from JSON */}
+                <p className="text-xs text-neutral-200 leading-relaxed font-sans">
+                  {club.description || club.history || (
+                    <span className="text-rose-400 font-mono italic text-[11px]">
+                      ⚠️ Keine Club-Beschreibung im Web ermittelt (Nicht erfunden).
                     </span>
+                  )}
+                </p>
+
+                {/* Typical Genres from JSON */}
+                <div>
+                  <div className="text-[10px] font-mono text-neutral-400 uppercase font-semibold mb-1">
+                    Typische Genres:
+                  </div>
+                  {club.typicalGenres && club.typicalGenres.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {club.typicalGenres.map((g, i) => (
+                        <span key={i} className="px-2 py-0.5 rounded bg-neutral-950 border border-neutral-700 text-neutral-300 text-[10px] font-mono">
+                          #{g}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded bg-rose-950/60 text-rose-300 border border-rose-500/60 text-[10px] font-mono font-bold">
+                      ⚠️ Keine typischen Genres im Web auffindbar
+                    </span>
+                  )}
+                </div>
+
+                {/* Key Facts: Outdoor & Ø Eintritt */}
+                <div className="grid grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
+                  <div className="p-2 bg-neutral-950/80 rounded-lg border border-neutral-800 flex items-center gap-2">
+                    <TreePine className={`w-4 h-4 shrink-0 ${club.hasOutdoor ? 'text-emerald-400' : 'text-neutral-500'}`} />
+                    <div>
+                      <span className="text-[10px] text-neutral-400 block">OUTDOOR / GARTEN</span>
+                      <span className={`font-bold ${club.hasOutdoor ? 'text-emerald-300' : 'text-neutral-300'}`}>
+                        {club.hasOutdoor ? 'Vorhanden (Open Air)' : 'Reiner Indoor-Club'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-2 bg-neutral-950/80 rounded-lg border border-neutral-800 flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-lime-400 shrink-0" />
+                    <div>
+                      <span className="text-[10px] text-neutral-400 block">Ø EINTRITTPREIS</span>
+                      {club.entryAvg ? (
+                        <span className="font-bold text-lime-300">{club.entryAvg}</span>
+                      ) : (
+                        <span className="text-rose-400 text-[10px] font-bold">⚠️ Nicht ermittelt</span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Vibe & History */}
-                <p className="text-xs text-neutral-300 leading-relaxed">
-                  {club.history}
-                </p>
+                {/* Address & Public Transit from JSON */}
+                <div className="text-xs text-neutral-300 space-y-1.5 font-mono bg-neutral-950/60 p-2.5 rounded-lg border border-neutral-800">
+                  <div className="flex items-start gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-lime-400 shrink-0 mt-0.5" />
+                    <span>{club.address || <span className="text-rose-400 font-bold">⚠️ Adresse fehlt</span>}{club.postalCode ? `, ${club.postalCode}` : ''} {city}</span>
+                  </div>
+                  <div className="flex items-start gap-1.5 text-neutral-300 text-[11px]">
+                    <Navigation className="w-3.5 h-3.5 text-yellow-400 shrink-0 mt-0.5" />
+                    <span>
+                      {club.publicTransit ? (
+                        <strong className="text-yellow-300 font-semibold">{club.publicTransit}</strong>
+                      ) : club.transit?.station ? (
+                        `${club.transit.station} (${club.transit.lines.join(', ')})`
+                      ) : (
+                        <span className="text-rose-400 font-bold">⚠️ Keine ÖPNV-Haltestelle im Web auffindbar</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
 
                 {/* MANDATORY AWARENESS & ZERO TOLERANCE CALLOUT */}
                 <div className="p-3 bg-purple-950/30 border border-purple-500/30 rounded-lg text-xs space-y-1.5">
@@ -202,7 +291,9 @@ export const ClubDirectory: React.FC<ClubDirectoryProps> = ({
                     <Volume2 className="w-4 h-4 text-lime-400 shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-neutral-200">Soundsystem:</strong>{' '}
-                      <span className="text-lime-300 font-mono text-[11px]">{club.soundSystem}</span>
+                      <span className="text-lime-300 font-mono text-[11px]">
+                        {club.soundSystem || <span className="text-rose-400 font-bold">⚠️ Nicht im Web verzeichnet</span>}
+                      </span>
                     </div>
                   </div>
 
@@ -210,7 +301,7 @@ export const ClubDirectory: React.FC<ClubDirectoryProps> = ({
                     <Camera className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-neutral-200">Fotopolitik:</strong>{' '}
-                      <span className="text-neutral-300">{club.photoPolicy}</span>
+                      <span className="text-neutral-300">{club.photoPolicy || 'Kamera abgeklebt'}</span>
                     </div>
                   </div>
 
@@ -218,7 +309,7 @@ export const ClubDirectory: React.FC<ClubDirectoryProps> = ({
                     <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-neutral-200">Einlasstipp:</strong>{' '}
-                      <span className="text-neutral-400 text-[11px]">{club.doorPolicy.tips}</span>
+                      <span className="text-neutral-400 text-[11px]">{club.doorPolicy?.tips || 'Awareness beachten.'}</span>
                     </div>
                   </div>
                 </div>
@@ -227,16 +318,22 @@ export const ClubDirectory: React.FC<ClubDirectoryProps> = ({
                 <div className="grid grid-cols-3 gap-2 pt-1 text-center font-mono text-[11px]">
                   <div className="p-1.5 bg-neutral-950/60 rounded border border-neutral-800">
                     <span className="text-neutral-500 block text-[10px]">ALTER</span>
-                    <span className="text-white font-bold">{club.minimumAge}+ Jahre</span>
+                    <span className="text-white font-bold">{club.minimumAge || 18}+ Jahre</span>
                   </div>
                   <div className="p-1.5 bg-neutral-950/60 rounded border border-neutral-800">
                     <span className="text-neutral-500 block text-[10px]">FLOORS</span>
-                    <span className="text-white font-bold">{club.floorsCount} Floors</span>
+                    <span className="text-white font-bold">{club.floorsCount || 1} Floors</span>
                   </div>
                   <div className="p-1.5 bg-neutral-950/60 rounded border border-neutral-800">
                     <span className="text-neutral-500 block text-[10px]">BEZAHLUNG</span>
-                    <span className="text-white font-bold truncate block">{club.paymentMethod}</span>
+                    <span className="text-white font-bold truncate block">{club.paymentMethod || 'Bar & Karte'}</span>
                   </div>
+                </div>
+
+                {/* Audit & Sync Line */}
+                <div className="flex items-center justify-between text-[10px] text-neutral-400 font-mono pt-1 border-t border-neutral-800/60">
+                  <span>Quelle: {club.createdBy || 'Na,Helle.de (Live Sync)'}</span>
+                  <span>{new Date(club.createdAt || Date.now()).toLocaleDateString('de-DE')}</span>
                 </div>
 
                 {/* Upcoming Events Mini-List */}
@@ -258,7 +355,7 @@ export const ClubDirectory: React.FC<ClubDirectoryProps> = ({
                             <span className="text-white font-semibold">{evt.title}</span>
                           </div>
                           <span className="text-[10px] font-mono text-neutral-400 shrink-0">
-                            {evt.price.presale ? `${evt.price.presale} €` : (evt.price.door ? `${evt.price.door} €` : 'N/A')}
+                            {evt.price?.presale != null ? `${evt.price.presale} €` : (evt.price?.door != null ? `${evt.price.door} €` : 'N/A')}
                           </span>
                         </div>
                       ))}

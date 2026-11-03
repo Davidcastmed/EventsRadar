@@ -111,12 +111,12 @@ export default function App() {
   // Filter clubs and events according to selectedCity
   const filteredClubs = useMemo(() => {
     if (selectedCity === 'Alle') return clubs;
-    return clubs.filter((c) => (c.city || 'Hamburg') === selectedCity);
+    return clubs.filter((c) => (c.city || 'Hamburg').toLowerCase() === selectedCity.toLowerCase());
   }, [clubs, selectedCity]);
 
   const filteredEvents = useMemo(() => {
     if (selectedCity === 'Alle') return events;
-    return events.filter((e) => (e.city || 'Hamburg') === selectedCity);
+    return events.filter((e) => (e.city || 'Hamburg').toLowerCase() === selectedCity.toLowerCase());
   }, [events, selectedCity]);
 
   // Count events scheduled for today (2026-10-31) in the current city selection
@@ -206,6 +206,7 @@ export default function App() {
           }
 
           setScanNotification(
+            data.notificationMessage ||
             `Scan erfolgreich abgeschlossen! ${data.addedCount || data.discoveredEvents.length} neue Events im Web (${selectedCity}) aufgespürt und synchronisiert.`
           );
         }

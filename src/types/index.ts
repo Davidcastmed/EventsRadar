@@ -8,15 +8,33 @@ export interface Club {
   id: string;
   name: string;
   aka?: string;
-  city?: City;
+  city?: City | string;
   address: string;
   neighborhood: string;
-  district: string;
-  postalCode: string;
+  district?: string;
+  postalCode?: string;
   coordinates: {
     lat: number;
     lng: number;
   };
+
+  // Neues Standard-JSON Schema für Clubs
+  description?: string;
+  typicalGenres?: string[];
+  website?: string;
+  hasOutdoor?: boolean;
+  publicTransit?: string;
+  entryAvg?: string;
+  badge?: string;
+  createdBy?: string;
+  createdAt?: string;
+
+  // Zero-Halluzinations-Tracking für Clubs
+  missingAttributes?: string[];
+  missingNotice?: string;
+  searchSuggestions?: string[];
+
+  // Bestehende Felder für Abwärtskompatibilität (immer durch normalizeClub initialisiert)
   transit: {
     station: string;
     lines: string[];
@@ -53,38 +71,69 @@ export interface DJArtist {
 }
 
 export interface EventPrice {
-  presale?: number; // VVK in EUR
-  door?: number;    // AK (Abendkasse) in EUR
-  earlyBird?: number;
+  presale?: number | null; // VVK in EUR (leer wenn nicht auffindbar)
+  door?: number | null;    // AK in EUR (leer wenn nicht auffindbar)
+  earlyBird?: number | null;
   currency: 'EUR';
   notes?: string;
+  isFreeEntry?: boolean;
 }
 
 export interface TechnoEvent {
+  // Primäre Attribute aus dem neuen JSON-Standard
   id: string;
   title: string;
-  subtitle?: string;
-  city?: City;
+  city?: string; // z. B. "hamburg" oder "berlin"
   clubId: string;
-  clubName: string;
+  venue?: string; // Veranstaltungsort / Clubname (z. B. "Schroedingers am Schanzenpark")
+  neighborhood?: string; // Stadtteil (z. B. "Sternschanze")
+  venueAddress?: string; // Vollständige Adresse
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
   date: string; // YYYY-MM-DD
-  startTime: string; // e.g. "23:00"
-  endTime: string;   // e.g. "08:00" or "14:00 (Open End)"
+  dateLabel?: string; // Formatiertes Datum z. B. "Mi, 11. Nov 2026"
+  startTime: string; // e.g. "18:00"
+  endTime: string;   // e.g. "Open End" oder "08:00"
   genres: string[];
-  lineup: DJArtist[];
+  lineup: (string | DJArtist)[]; // Liste der DJs als Strings oder DJArtist-Objekte
+  entryFee?: string; // e.g. "10 - 18 €" (oder "" wenn nicht ermittelt)
+  priceNumeric?: number | null; // e.g. 15 (oder null)
+  isFree?: boolean;
+  isOpenAir?: boolean;
+  hasPresale?: boolean;
+  ticketUrl: string; // Kauflink oder ""
+  flyerUrl?: string; // Event-Poster / Flyer-Bild-URL oder ""
   description: string;
-  price: EventPrice;
-  ticketUrl: string;
-  ticketProvider: string; // e.g. "Resident Advisor", "TixforGigs", "Eventim Light", "Club Vorverkauf"
-  ticketStatus: 'Verfügbar' | 'Letzte Tickets' | 'VVK Ausverkauft (Nur AK)' | 'Nur Abendkasse' | 'Disponible' | 'Últimas entradas' | 'Solo en Puerta';
-  doorPolicyNotes: string;
-  soundSystemNotes?: string;
-  minimumAge: number;
-  photoPolicy: PhotoPolicy;
-  awarenessHighlights: string;
+  awarenessInfo?: string; // Richtlinie gegen Rassismus, Sexismus, Diskriminierung
+  createdBy?: string;
+  createdAt?: string;
   source: string;
+  sources?: string[];
+  externalIds?: Record<string, string>;
+  fingerprint?: string;
+  attendeesCount?: number;
+  attendeeNames?: string[];
+
+  // Zero-Halluzinations-Tracking & Suchverbesserung
+  missingAttributes?: string[]; // Liste im Web nicht auffindbarer Attribute
+  missingNotice?: string;       // Benachrichtigung zur Suchoptimierung
+  searchSuggestions?: string[]; // Tipps zur Suchverbesserung
+
+  // Rückwärtskompatible Aliase
+  clubName?: string; // Alias für venue
+  subtitle?: string;
+  price?: EventPrice;
+  ticketProvider?: string;
+  ticketStatus?: string;
+  doorPolicyNotes?: string;
+  soundSystemNotes?: string;
+  minimumAge?: number | null;
+  photoPolicy?: PhotoPolicy | string;
+  awarenessHighlights?: string;
   sourceUrl?: string;
-  discoveredAt: string;
+  discoveredAt?: string;
   isAgentDiscovered?: boolean;
 }
 

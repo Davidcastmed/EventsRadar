@@ -65,16 +65,22 @@ export function exportEventsToCSV(events: TechnoEvent[], clubs: Club[], customFi
     'Soundsystem',
     'Quelle',
     'Agent-Entdeckt',
-    'Erfassungsdatum'
+    'Erfassungsdatum',
+    'Fehlende Web-Attribute (Zero-Halluzination)',
+    'Suchverbesserungs-Tipp'
   ];
 
   const rows = events.map((evt) => {
     const club = clubLookup.get(evt.clubId);
     const city = evt.city || club?.city || 'Hamburg';
     const district = club ? `${club.neighborhood} (${club.district})` : '';
-    const lineupStr = evt.lineup.map((a) => `${a.name}${a.role ? ` [${a.role}]` : ''}`).join('; ');
+    const lineupStr = evt.lineup
+      .map((a) => (typeof a === 'string' ? a : `${a.name}${a.role ? ` [${a.role}]` : ''}`))
+      .join('; ');
     const genresStr = evt.genres.join(', ');
     const soundSys = evt.soundSystemNotes || club?.soundSystem || '';
+    const missingStr = evt.missingAttributes && evt.missingAttributes.length > 0 ? evt.missingAttributes.join('; ') : 'Vollständig';
+    const noticeStr = evt.missingNotice || '';
 
     return [
       escapeCSVCell(evt.id),
@@ -86,23 +92,25 @@ export function exportEventsToCSV(events: TechnoEvent[], clubs: Club[], customFi
       escapeCSVCell(district),
       escapeCSVCell(evt.date),
       escapeCSVCell(evt.startTime),
-      escapeCSVCell(evt.endTime),
+      escapeCSVCell(evt.endTime || ''),
       escapeCSVCell(genresStr),
       escapeCSVCell(lineupStr),
-      escapeCSVCell(evt.price.presale !== undefined ? evt.price.presale : ''),
-      escapeCSVCell(evt.price.door !== undefined ? evt.price.door : ''),
-      escapeCSVCell(evt.price.currency),
-      escapeCSVCell(evt.ticketStatus),
-      escapeCSVCell(evt.ticketProvider),
-      escapeCSVCell(evt.ticketUrl),
-      escapeCSVCell(evt.doorPolicyNotes),
-      escapeCSVCell(evt.photoPolicy),
-      escapeCSVCell(evt.minimumAge),
-      escapeCSVCell(evt.awarenessHighlights),
+      escapeCSVCell(evt.price?.presale != null ? evt.price.presale : ''),
+      escapeCSVCell(evt.price?.door != null ? evt.price.door : ''),
+      escapeCSVCell(evt.price?.currency || 'EUR'),
+      escapeCSVCell(evt.ticketStatus || ''),
+      escapeCSVCell(evt.ticketProvider || ''),
+      escapeCSVCell(evt.ticketUrl || ''),
+      escapeCSVCell(evt.doorPolicyNotes || ''),
+      escapeCSVCell(evt.photoPolicy || ''),
+      escapeCSVCell(evt.minimumAge != null ? evt.minimumAge : ''),
+      escapeCSVCell(evt.awarenessHighlights || ''),
       escapeCSVCell(soundSys),
       escapeCSVCell(evt.source),
       escapeCSVCell(evt.isAgentDiscovered ? 'Ja' : 'Nein'),
-      escapeCSVCell(evt.discoveredAt)
+      escapeCSVCell(evt.discoveredAt),
+      escapeCSVCell(missingStr),
+      escapeCSVCell(noticeStr)
     ].join(',');
   });
 
@@ -119,7 +127,7 @@ export function exportClubsToCSV(clubs: Club[], customFilename?: string) {
   const headers = [
     'Club-ID',
     'Club-Name',
-    'AKA / Spitzname',
+    'Badge / Auszeichnung',
     'Stadt',
     'Stadtteil',
     'Bezirk',
@@ -127,60 +135,59 @@ export function exportClubsToCSV(clubs: Club[], customFilename?: string) {
     'Postleitzahl',
     'Breitengrad (Lat)',
     'Längengrad (Lng)',
-    'Nahverkehr-Station',
-    'Linien (U/S/Bus)',
-    'Fußweg (Minuten)',
-    'Anfahrtsbeschreibung',
+    'Beschreibung',
+    'Typische Genres',
+    'Outdoor / Garten (Open Air)',
+    'Öffentlicher Nahverkehr (ÖPNV)',
+    'Ø Eintrittspreis',
     'Soundsystem',
-    'Vibe & Atmosphäre',
-    'Historie',
     'Tür-Strenge',
     'Dresscode',
     'Tür-Tipps',
-    'Abweisungsrisiko',
     'Fotopolitik',
     'Mindestalter',
     'Zahlungsart',
     'Floors',
-    'Kapazität',
     'Awareness-Politik & Nulltoleranz',
     'Website',
-    'Resident Advisor URL',
-    'Instagram'
+    'Erstellt von',
+    'Erstellt am',
+    'Fehlende Web-Attribute (Zero-Halluzination)',
+    'Suchoptimierung'
   ];
 
   const rows = clubs.map((c) => {
+    const missingStr = c.missingAttributes && c.missingAttributes.length > 0 ? c.missingAttributes.join('; ') : 'Vollständig';
     return [
       escapeCSVCell(c.id),
       escapeCSVCell(c.name),
-      escapeCSVCell(c.aka || ''),
+      escapeCSVCell(c.badge || ''),
       escapeCSVCell(c.city || 'Hamburg'),
       escapeCSVCell(c.neighborhood),
-      escapeCSVCell(c.district),
+      escapeCSVCell(c.district || c.neighborhood),
       escapeCSVCell(c.address),
-      escapeCSVCell(c.postalCode),
-      escapeCSVCell(c.coordinates.lat),
-      escapeCSVCell(c.coordinates.lng),
-      escapeCSVCell(c.transit.station),
-      escapeCSVCell(c.transit.lines.join('; ')),
-      escapeCSVCell(c.transit.walkMinutes),
-      escapeCSVCell(c.transit.directions),
-      escapeCSVCell(c.soundSystem),
-      escapeCSVCell(c.vibe),
-      escapeCSVCell(c.history),
-      escapeCSVCell(c.doorPolicy.strictness),
-      escapeCSVCell(c.doorPolicy.dressCode),
-      escapeCSVCell(c.doorPolicy.tips),
-      escapeCSVCell(c.doorPolicy.rejectionRisk),
-      escapeCSVCell(c.photoPolicy),
-      escapeCSVCell(c.minimumAge),
-      escapeCSVCell(c.paymentMethod),
-      escapeCSVCell(c.floorsCount),
-      escapeCSVCell(c.capacity || ''),
-      escapeCSVCell(c.awarenessPolicy),
-      escapeCSVCell(c.websiteUrl),
-      escapeCSVCell(c.residentAdvisorUrl || ''),
-      escapeCSVCell(c.instagramHandle || '')
+      escapeCSVCell(c.postalCode || ''),
+      escapeCSVCell(c.coordinates?.lat || 0),
+      escapeCSVCell(c.coordinates?.lng || 0),
+      escapeCSVCell(c.description || c.history || c.vibe || ''),
+      escapeCSVCell(c.typicalGenres ? c.typicalGenres.join('; ') : ''),
+      escapeCSVCell(c.hasOutdoor ? 'Ja (Outdoor / Garten)' : 'Nein (Reiner Indoor)'),
+      escapeCSVCell(c.publicTransit || c.transit?.station || ''),
+      escapeCSVCell(c.entryAvg || ''),
+      escapeCSVCell(c.soundSystem || ''),
+      escapeCSVCell(c.doorPolicy?.strictness || 'Moderat'),
+      escapeCSVCell(c.doorPolicy?.dressCode || 'Rave'),
+      escapeCSVCell(c.doorPolicy?.tips || ''),
+      escapeCSVCell(c.photoPolicy || 'Kamera abgeklebt'),
+      escapeCSVCell(c.minimumAge || 18),
+      escapeCSVCell(c.paymentMethod || 'Bar & Karte'),
+      escapeCSVCell(c.floorsCount || 1),
+      escapeCSVCell(c.awarenessPolicy || 'Awareness-Team available'),
+      escapeCSVCell(c.website || c.websiteUrl || ''),
+      escapeCSVCell(c.createdBy || 'Na,Helle.de (Live Sync)'),
+      escapeCSVCell(c.createdAt || ''),
+      escapeCSVCell(missingStr),
+      escapeCSVCell(c.missingNotice || '')
     ].join(',');
   });
 
