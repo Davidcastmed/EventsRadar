@@ -2,7 +2,7 @@ export type DoorStrictness = 'Streng' | 'Moderat' | 'Offen' | 'Estricta' | 'Mode
 export type PhotoPolicy = 'Kamera abgeklebt' | 'Strikt verboten' | 'Diskret / Erlaubt' | 'Cámaras con pegatinas' | 'Estrictamente Prohibido' | 'Discreto / Permitido';
 export type PaymentMethod = 'Nur Barzahlung' | 'Nur Kartenzahlung' | 'Bar & Karte' | 'Solo Efectivo' | 'Solo Tarjeta' | 'Efectivo y Tarjeta';
 
-export type City = 'Hamburg' | 'Berlin';
+export type City = 'Hamburg' | 'Berlin' | 'Wien' | 'Köln';
 
 export interface Club {
   id: string;
@@ -61,6 +61,51 @@ export interface Club {
   floorsCount: number;
 }
 
+export interface DJRelease {
+  title: string;
+  label: string;
+  year: number;
+  link?: string;
+}
+
+export interface DJGig {
+  title: string;
+  date: string;
+  venue: string;
+  city: string;
+}
+
+export interface DJProfile {
+  id: string;
+  artistName: string;
+  realName?: string;
+  role: string; // z. B. "dj_producer", "live_act", "resident"
+  city: string; // z. B. "berlin" oder "hamburg"
+  genres: string[];
+  bio: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
+  soundCloudUrl?: string;
+  spotifyUrl?: string;
+  instagramUrl?: string;
+  residentClubs: string[];
+  gearEquipment?: string;
+  bookingEmail?: string;
+  isVerified: boolean;
+  releases: DJRelease[];
+  upcomingGigs: DJGig[];
+  createdBy?: string;
+  createdAt?: string;
+
+  // Zero-Halluzinations-Tracking für DJs
+  missingAttributes?: string[];
+  missingNotice?: string;
+  searchSuggestions?: string[];
+
+  // Rückwärtskompatible Aliase
+  name?: string;
+}
+
 export interface DJArtist {
   name: string;
   role?: 'Headliner' | 'Resident' | 'Live Act' | 'Support' | 'Special Guest';
@@ -111,6 +156,7 @@ export interface TechnoEvent {
   createdAt?: string;
   source: string;
   sources?: string[];
+  sourceWebsite?: string; // Herkunfts-Webseite (z. B. "https://ohschonhell.de", "https://oazis.app", "https://ra.co")
   externalIds?: Record<string, string>;
   fingerprint?: string;
   attendeesCount?: number;

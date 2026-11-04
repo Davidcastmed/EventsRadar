@@ -107,7 +107,7 @@ export const AgentAutomationPanel: React.FC<AgentAutomationPanelProps> = ({
               Automations-Zentrale & Web-Crawler
             </h2>
             <p className="text-sm text-neutral-300 max-w-2xl">
-              Der Agent durchsucht das Internet automatisch zu festgelegten Uhrzeiten (Resident Advisor Hamburg, Clubkombinat, TixforGigs, Club-Websites) nach Techno-Events, Lineups, DJs, Preisen, Awareness-Richtlinien und Ticket-Direktlinks.
+              Der Agent durchsucht das Internet kontinuierlich und dedupliziert intelligent (ohschonhell.de für Hamburg, Oazis.app für Berlin & Wien, Resident Advisor für Köln) nach Techno-Events von heute bis zu 2 Monaten im Voraus. Bereits erfasste Events werden erkannt und aktualisiert, neue Events automatisch hinzugefügt.
             </p>
           </div>
 
@@ -120,7 +120,7 @@ export const AgentAutomationPanel: React.FC<AgentAutomationPanelProps> = ({
               {isScanning ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Durchsuche Hamburg & Berlin...</span>
+                  <span>Durchsuche Hamburg, Berlin, Köln & Wien...</span>
                 </>
               ) : (
                 <>

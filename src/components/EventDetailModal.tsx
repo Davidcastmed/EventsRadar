@@ -594,13 +594,27 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
               <span>Erstellt von: <strong className="text-neutral-200">{event.createdBy || event.source}</strong></span>
               <span>Synchronisiert: <strong className="text-neutral-200">{new Date(event.createdAt || event.discoveredAt || Date.now()).toLocaleString('de-DE')}</strong></span>
             </div>
-            {(event.sources || event.externalIds || event.fingerprint) && (
-              <div className="p-2.5 bg-neutral-950/80 rounded border border-neutral-800/80 flex flex-col gap-1 text-[10px]">
+            {(event.sourceWebsite || event.sources || event.externalIds || event.fingerprint) && (
+              <div className="p-2.5 bg-neutral-950/80 rounded border border-neutral-800/80 flex flex-col gap-1.5 text-[10px]">
+                {event.sourceWebsite && (
+                  <div className="flex items-center gap-1.5 text-xs text-lime-400 font-bold">
+                    <span>🌐 Herkunfts-Webseite:</span>
+                    <a
+                      href={event.sourceWebsite}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-white flex items-center gap-1"
+                    >
+                      <span>{event.sourceWebsite}</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
                 {event.fingerprint && (
-                  <div>Fingerprint: <span className="text-neutral-300">{event.fingerprint}</span></div>
+                  <div>Fingerprint: <span className="text-neutral-300 font-mono">{event.fingerprint}</span></div>
                 )}
                 {event.externalIds && Object.keys(event.externalIds).length > 0 && (
-                  <div>Externe IDs: <span className="text-cyan-300">{JSON.stringify(event.externalIds)}</span></div>
+                  <div>Externe IDs: <span className="text-cyan-300 font-mono">{JSON.stringify(event.externalIds)}</span></div>
                 )}
                 {event.sources && event.sources.length > 0 && (
                   <div>Quellen-Historie: <span className="text-lime-300">{event.sources.join(', ')}</span></div>

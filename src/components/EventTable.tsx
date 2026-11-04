@@ -51,7 +51,7 @@ export const EventTable: React.FC<EventTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClubId, setSelectedClubId] = useState<string>('all');
   const [selectedGenre, setSelectedGenre] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'twoweeks' | 'weekend' | 'agent'>('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'twoweeks' | 'twomonths' | 'weekend' | 'agent'>('all');
   const [sortField, setSortField] = useState<'date' | 'price' | 'club'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -69,13 +69,17 @@ export const EventTable: React.FC<EventTableProps> = ({
     return Array.from(set).sort();
   }, [events]);
 
-  // Today & 2-week counts
+  // Today, 2-week, and 2-month counts
   const todayEventsCount = useMemo(() => {
     return events.filter((e) => e.date === '2026-10-31').length;
   }, [events]);
 
   const twoWeeksEventsCount = useMemo(() => {
     return events.filter((e) => e.date >= '2026-10-31' && e.date <= '2026-11-15').length;
+  }, [events]);
+
+  const twoMonthsEventsCount = useMemo(() => {
+    return events.filter((e) => e.date >= '2026-11-01' && e.date <= '2027-01-15').length;
   }, [events]);
 
   // Filtering & Sorting
@@ -113,6 +117,8 @@ export const EventTable: React.FC<EventTableProps> = ({
           if (evt.date !== '2026-10-31') return false;
         } else if (dateFilter === 'twoweeks') {
           if (evt.date < '2026-10-31' || evt.date > '2026-11-15') return false;
+        } else if (dateFilter === 'twomonths') {
+          if (evt.date < '2026-11-01' || evt.date > '2027-01-15') return false;
         } else if (dateFilter === 'weekend') {
           const day = new Date(evt.date + 'T12:00:00').getDay();
           // Friday = 5, Saturday = 6, Sunday = 0
@@ -236,7 +242,19 @@ export const EventTable: React.FC<EventTableProps> = ({
                   : 'bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700'
               }`}
             >
-              Nächste 2 Wochen ({twoWeeksEventsCount})
+              2 Wochen ({twoWeeksEventsCount})
+            </button>
+
+            {/* Nächste 2 Monate (Nov 2026 - Jan 2027) */}
+            <button
+              onClick={() => setDateFilter('twomonths')}
+              className={`px-2.5 py-1 rounded transition ${
+                dateFilter === 'twomonths'
+                  ? 'bg-lime-400 text-black font-bold'
+                  : 'bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700'
+              }`}
+            >
+              2 Monate ({twoMonthsEventsCount})
             </button>
 
             {/* Wochenende */}
@@ -399,9 +417,24 @@ export const EventTable: React.FC<EventTableProps> = ({
                       </span>
                     )}
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-neutral-800 text-lime-400 text-[10px] font-bold uppercase">
-                    {evt.city || club?.city || 'Hamburg'}
-                  </span>
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    {evt.sourceWebsite && (
+                      <a
+                        href={evt.sourceWebsite}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="px-1.5 py-0.5 rounded bg-lime-950/80 text-lime-400 border border-lime-500/40 text-[9px] font-mono hover:underline flex items-center gap-1"
+                        title={`Quelle: ${evt.sourceWebsite}`}
+                      >
+                        <span>{evt.sourceWebsite.replace('https://', '').replace('www.', '')}</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    )}
+                    <span className="px-2 py-0.5 rounded-full bg-neutral-800 text-lime-400 text-[10px] font-bold uppercase">
+                      {evt.city || club?.city || 'Hamburg'}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Title & Venue Name */}
@@ -697,10 +730,23 @@ export const EventTable: React.FC<EventTableProps> = ({
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 mt-0.5 text-[11px] text-neutral-400">
+                        <div className="flex flex-wrap items-center gap-1 mt-0.5 text-[11px] text-neutral-400">
                           <span className="px-1.5 py-0.2 rounded bg-neutral-800 text-lime-400 font-mono text-[10px] font-bold">
                             {evt.city || club?.city || 'Hamburg'}
                           </span>
+                          {evt.sourceWebsite && (
+                            <a
+                              href={evt.sourceWebsite}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded bg-lime-950/70 text-lime-400 border border-lime-500/40 text-[9px] font-mono hover:underline"
+                              title={`Gecrawlt von: ${evt.sourceWebsite}`}
+                            >
+                              <span>{evt.sourceWebsite.replace('https://', '').replace('www.', '')}</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          )}
                           <span className="px-1.5 py-0.2 rounded bg-neutral-800 font-mono text-[10px]">
                             {evt.neighborhood || club?.neighborhood || ''}
                           </span>

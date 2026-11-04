@@ -89,8 +89,12 @@ export const ClubMap: React.FC<ClubMapProps> = ({
       map.flyTo([52.5110, 13.4350], 12);
     } else if (selectedCity === 'Hamburg') {
       map.flyTo([53.5511, 9.9937], 13);
+    } else if (selectedCity === 'Wien') {
+      map.flyTo([48.2250, 16.3680], 13);
+    } else if (selectedCity === 'Köln') {
+      map.flyTo([50.9450, 6.9400], 13);
     } else if (selectedCity === 'Alle') {
-      map.flyTo([53.05, 11.7], 7);
+      map.flyTo([51.2, 11.5], 6);
     }
   }, [selectedCity]);
 

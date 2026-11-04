@@ -33,6 +33,22 @@ function downloadCSV(csvContent: string, fileName: string) {
 }
 
 /**
+ * Triggers a browser download of a formatted JSON string
+ */
+function downloadJSON(jsonContent: string, fileName: string) {
+  const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', fileName);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Exports all provided events to a formatted CSV file
  */
 export function exportEventsToCSV(events: TechnoEvent[], clubs: Club[], customFilename?: string) {
@@ -64,6 +80,7 @@ export function exportEventsToCSV(events: TechnoEvent[], clubs: Club[], customFi
     'Awareness-Team & Nulltoleranz',
     'Soundsystem',
     'Quelle',
+    'Herkunfts-Website (sourceWebsite)',
     'Agent-Entdeckt',
     'Erfassungsdatum',
     'Fehlende Web-Attribute (Zero-Halluzination)',
@@ -81,6 +98,7 @@ export function exportEventsToCSV(events: TechnoEvent[], clubs: Club[], customFi
     const soundSys = evt.soundSystemNotes || club?.soundSystem || '';
     const missingStr = evt.missingAttributes && evt.missingAttributes.length > 0 ? evt.missingAttributes.join('; ') : 'Vollständig';
     const noticeStr = evt.missingNotice || '';
+    const sourceWeb = evt.sourceWebsite || (evt.sourceUrl ? new URL(evt.sourceUrl).origin : 'https://ohschonhell.de');
 
     return [
       escapeCSVCell(evt.id),
@@ -107,6 +125,7 @@ export function exportEventsToCSV(events: TechnoEvent[], clubs: Club[], customFi
       escapeCSVCell(evt.awarenessHighlights || ''),
       escapeCSVCell(soundSys),
       escapeCSVCell(evt.source),
+      escapeCSVCell(sourceWeb),
       escapeCSVCell(evt.isAgentDiscovered ? 'Ja' : 'Nein'),
       escapeCSVCell(evt.discoveredAt),
       escapeCSVCell(missingStr),
@@ -196,3 +215,112 @@ export function exportClubsToCSV(clubs: Club[], customFilename?: string) {
   const filename = customFilename || `kraftwerk_clubs_${dateStr}.csv`;
   downloadCSV(csvContent, filename);
 }
+
+/**
+ * Exports all provided DJ profiles to a formatted CSV file
+ */
+export function exportDJsToCSV(djs: import('../types/index.ts').DJProfile[], customFilename?: string) {
+  const headers = [
+    'DJ-ID',
+    'Künstlername (artistName)',
+    'Bürgerlicher Name (realName)',
+    'Rolle (role)',
+    'Stadt (city)',
+    'Genres',
+    'Biografie (bio)',
+    'Resident-Clubs (residentClubs)',
+    'Live & Studio Gear (gearEquipment)',
+    'Booking-E-Mail (bookingEmail)',
+    'Verifiziert (isVerified)',
+    'Releases / Diskografie (releases)',
+    'Upcoming Gigs (upcomingGigs)',
+    'SoundCloud (soundCloudUrl)',
+    'Spotify (spotifyUrl)',
+    'Instagram (instagramUrl)',
+    'Avatar-URL (avatarUrl)',
+    'Banner-URL (bannerUrl)',
+    'Erstellt von (createdBy)',
+    'Erstellt am (createdAt)',
+    'Fehlende Web-Attribute (Zero-Halluzination)',
+    'Suchoptimierung (searchSuggestions)'
+  ];
+
+  const rows = djs.map((dj) => {
+    const missingStr = dj.missingAttributes && dj.missingAttributes.length > 0 
+      ? dj.missingAttributes.join('; ') 
+      : 'Vollständig verifiziert';
+
+    const releasesStr = (dj.releases || [])
+      .map((r) => `${r.title} [${r.label}, ${r.year}]`)
+      .join('; ');
+
+    const gigsStr = (dj.upcomingGigs || [])
+      .map((g) => `${g.title} (${g.date} @ ${g.venue}, ${g.city})`)
+      .join('; ');
+
+    const suggestionsStr = dj.searchSuggestions && dj.searchSuggestions.length > 0
+      ? dj.searchSuggestions.join('; ')
+      : (dj.missingNotice || '');
+
+    return [
+      escapeCSVCell(dj.id),
+      escapeCSVCell(dj.artistName),
+      escapeCSVCell(dj.realName || ''),
+      escapeCSVCell(dj.role),
+      escapeCSVCell(dj.city),
+      escapeCSVCell((dj.genres || []).join('; ')),
+      escapeCSVCell(dj.bio || ''),
+      escapeCSVCell((dj.residentClubs || []).join('; ')),
+      escapeCSVCell(dj.gearEquipment || ''),
+      escapeCSVCell(dj.bookingEmail || ''),
+      escapeCSVCell(dj.isVerified ? 'Ja' : 'Nein'),
+      escapeCSVCell(releasesStr),
+      escapeCSVCell(gigsStr),
+      escapeCSVCell(dj.soundCloudUrl || ''),
+      escapeCSVCell(dj.spotifyUrl || ''),
+      escapeCSVCell(dj.instagramUrl || ''),
+      escapeCSVCell(dj.avatarUrl || ''),
+      escapeCSVCell(dj.bannerUrl || ''),
+      escapeCSVCell(dj.createdBy || 'system_seed'),
+      escapeCSVCell(dj.createdAt || ''),
+      escapeCSVCell(missingStr),
+      escapeCSVCell(suggestionsStr)
+    ].join(',');
+  });
+
+  const csvContent = [headers.join(','), ...rows].join('\r\n');
+  const dateStr = new Date().toISOString().split('T')[0];
+  const filename = customFilename || `kraftwerk_djs_${dateStr}.csv`;
+  downloadCSV(csvContent, filename);
+}
+
+/**
+ * Exports all provided events to a formatted JSON file
+ */
+export function exportEventsToJSON(events: TechnoEvent[], customFilename?: string) {
+  const jsonContent = JSON.stringify(events, null, 2);
+  const dateStr = new Date().toISOString().split('T')[0];
+  const filename = customFilename || `kraftwerk_events_${dateStr}.json`;
+  downloadJSON(jsonContent, filename);
+}
+
+/**
+ * Exports all provided clubs to a formatted JSON file
+ */
+export function exportClubsToJSON(clubs: Club[], customFilename?: string) {
+  const jsonContent = JSON.stringify(clubs, null, 2);
+  const dateStr = new Date().toISOString().split('T')[0];
+  const filename = customFilename || `kraftwerk_clubs_${dateStr}.json`;
+  downloadJSON(jsonContent, filename);
+}
+
+/**
+ * Exports all provided DJ profiles to a formatted JSON file
+ */
+export function exportDJsToJSON(djs: import('../types/index.ts').DJProfile[], customFilename?: string) {
+  const jsonContent = JSON.stringify(djs, null, 2);
+  const dateStr = new Date().toISOString().split('T')[0];
+  const filename = customFilename || `kraftwerk_djs_${dateStr}.json`;
+  downloadJSON(jsonContent, filename);
+}
+

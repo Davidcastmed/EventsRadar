@@ -14,15 +14,16 @@ import {
   Lock,
   LogOut,
   Plus,
-  ShieldCheck
+  ShieldCheck,
+  Headphones
 } from 'lucide-react';
 import { City } from '../types/index.ts';
 
 export type CityFilter = City | 'Alle';
 
 interface HeaderProps {
-  activeTab: 'table' | 'map' | 'clubs' | 'agent';
-  setActiveTab: (tab: 'table' | 'map' | 'clubs' | 'agent') => void;
+  activeTab: 'table' | 'map' | 'clubs' | 'djs' | 'agent';
+  setActiveTab: (tab: 'table' | 'map' | 'clubs' | 'djs' | 'agent') => void;
   selectedCity: CityFilter;
   setSelectedCity: (city: CityFilter) => void;
   onTriggerScan: () => void;
@@ -30,8 +31,13 @@ interface HeaderProps {
   totalEvents: number;
   todayEventsCount: number;
   clubsCount?: number;
+  djsCount?: number;
   onExportEventsCSV: () => void;
+  onExportEventsJSON: () => void;
   onExportClubsCSV: () => void;
+  onExportClubsJSON: () => void;
+  onExportDJsCSV?: () => void;
+  onExportDJsJSON?: () => void;
   nextRunAt?: string;
   currentUser: { username: string; role: string } | null;
   onOpenLogin: () => void;
@@ -49,8 +55,13 @@ export const Header: React.FC<HeaderProps> = ({
   totalEvents,
   todayEventsCount,
   clubsCount,
+  djsCount,
   onExportEventsCSV,
+  onExportEventsJSON,
   onExportClubsCSV,
+  onExportClubsJSON,
+  onExportDJsCSV,
+  onExportDJsJSON,
   currentUser,
   onOpenLogin,
   onLogout,
@@ -148,42 +159,25 @@ export const Header: React.FC<HeaderProps> = ({
             </p>
           </div>
 
-          {/* CITY SWITCHER: Hamburg / Berlin / Alle */}
-          <div className="flex items-center p-1 bg-neutral-900 border border-neutral-800 rounded-xl font-mono text-xs ml-auto sm:ml-2">
-            <button
-              onClick={() => setSelectedCity('Hamburg')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition font-bold ${
-                selectedCity === 'Hamburg'
-                  ? 'bg-lime-400 text-black shadow-md'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <MapPin className="w-3 h-3" />
-              <span>Hamburg</span>
-            </button>
-
-            <button
-              onClick={() => setSelectedCity('Berlin')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition font-bold ${
-                selectedCity === 'Berlin'
-                  ? 'bg-lime-400 text-black shadow-md'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <MapPin className="w-3 h-3" />
-              <span>Berlin</span>
-            </button>
-
-            <button
-              onClick={() => setSelectedCity('Alle')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition font-bold ${
-                selectedCity === 'Alle'
-                  ? 'bg-neutral-700 text-white shadow-md'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <span>Alle</span>
-            </button>
+          {/* CITY SWITCHER: Hamburg / Berlin / Wien / Köln / Alle */}
+          <div className="flex items-center p-1 bg-neutral-900 border border-neutral-800 rounded-xl font-mono text-xs ml-auto sm:ml-2 overflow-x-auto max-w-full">
+            {(['Hamburg', 'Berlin', 'Wien', 'Köln', 'Alle'] as CityFilter[]).map((c) => {
+              const active = selectedCity === c;
+              return (
+                <button
+                  key={c}
+                  onClick={() => setSelectedCity(c)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition font-bold whitespace-nowrap touch-manipulation ${
+                    active
+                      ? c === 'Alle' ? 'bg-neutral-700 text-white shadow-md' : 'bg-lime-400 text-black shadow-md'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  {c !== 'Alle' && <MapPin className="w-3 h-3" />}
+                  <span>{c}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -228,6 +222,18 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveTab('djs')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold font-mono whitespace-nowrap transition ${
+                activeTab === 'djs'
+                  ? 'bg-lime-400 text-black font-bold shadow'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              <Headphones className="w-3.5 h-3.5" />
+              <span>DJs ({djsCount || 0})</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('agent')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold font-mono whitespace-nowrap transition ${
                 activeTab === 'agent'
@@ -240,54 +246,114 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </nav>
 
-          {/* CSV EXPORT DROPDOWN BUTTON */}
+          {/* CSV & JSON EXPORT DROPDOWN BUTTON */}
           <div className="relative" ref={exportMenuRef}>
             <button
               onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-              title="Events oder Clubs als CSV exportieren"
+              title="Events, Clubs oder DJs als CSV oder JSON herunterladen"
               className="flex items-center gap-1.5 px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border border-neutral-700 font-mono text-xs font-semibold rounded-xl transition"
             >
               <Download className="w-3.5 h-3.5 text-lime-400" />
-              <span>CSV Export</span>
+              <span>Export (.CSV / .JSON)</span>
               <ChevronDown className="w-3 h-3 text-neutral-400" />
             </button>
 
             {isExportMenuOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl z-50 p-1.5 animate-in fade-in-50 zoom-in-95 font-mono text-xs">
-                <div className="px-2.5 py-1.5 text-[10px] text-neutral-400 uppercase tracking-wider font-semibold border-b border-neutral-800 mb-1">
-                  Daten als .CSV herunterladen
+              <div className="absolute right-0 mt-2 w-64 bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl z-50 p-2 animate-in fade-in-50 zoom-in-95 font-mono text-xs space-y-1.5">
+                <div className="px-2.5 py-1 text-[10px] text-neutral-400 uppercase tracking-wider font-semibold border-b border-neutral-800 flex items-center justify-between">
+                  <span>Export ({selectedCity})</span>
+                  <span className="text-lime-400 font-bold">CSV & JSON</span>
                 </div>
                 
-                <button
-                  onClick={() => {
-                    onExportEventsCSV();
-                    setIsExportMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 text-left rounded-lg text-neutral-200 hover:bg-neutral-800 hover:text-lime-300 transition"
-                >
-                  <FileSpreadsheet className="w-4 h-4 text-lime-400 shrink-0" />
-                  <div>
-                    <div className="font-bold">Events (.csv)</div>
-                    <div className="text-[10px] text-neutral-400">Alle {totalEvents} Events mit Preisen & DJs</div>
+                {/* Events Section */}
+                <div className="p-1.5 bg-neutral-950/70 border border-neutral-800 rounded-lg space-y-1">
+                  <div className="text-[10px] text-neutral-400 font-bold uppercase flex items-center gap-1">
+                    <FileSpreadsheet className="w-3 h-3 text-lime-400" />
+                    <span>Techno Events ({totalEvents})</span>
                   </div>
-                </button>
+                  <div className="grid grid-cols-2 gap-1 pt-0.5">
+                    <button
+                      onClick={() => {
+                        onExportEventsCSV();
+                        setIsExportMenuOpen(false);
+                      }}
+                      className="px-2 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 hover:text-lime-300 rounded text-center transition font-bold"
+                    >
+                      .CSV
+                    </button>
+                    <button
+                      onClick={() => {
+                        onExportEventsJSON();
+                        setIsExportMenuOpen(false);
+                      }}
+                      className="px-2 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-lime-300 rounded text-center transition font-bold"
+                    >
+                      .JSON
+                    </button>
+                  </div>
+                </div>
 
-                <button
-                  onClick={() => {
-                    onExportClubsCSV();
-                    setIsExportMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 text-left rounded-lg text-neutral-200 hover:bg-neutral-800 hover:text-lime-300 transition"
-                >
-                  <Building2 className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <div>
-                    <div className="font-bold">Clubs (.csv)</div>
-                    <div className="text-[10px] text-neutral-400">Alle {clubsCount} Clubs mit Sound & Tür</div>
+                {/* Clubs Section */}
+                <div className="p-1.5 bg-neutral-950/70 border border-neutral-800 rounded-lg space-y-1">
+                  <div className="text-[10px] text-neutral-400 font-bold uppercase flex items-center gap-1">
+                    <Building2 className="w-3 h-3 text-cyan-400" />
+                    <span>Clubs ({clubsCount || 0})</span>
                   </div>
-                </button>
+                  <div className="grid grid-cols-2 gap-1 pt-0.5">
+                    <button
+                      onClick={() => {
+                        onExportClubsCSV();
+                        setIsExportMenuOpen(false);
+                      }}
+                      className="px-2 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 hover:text-cyan-300 rounded text-center transition font-bold"
+                    >
+                      .CSV
+                    </button>
+                    <button
+                      onClick={() => {
+                        onExportClubsJSON();
+                        setIsExportMenuOpen(false);
+                      }}
+                      className="px-2 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-cyan-300 rounded text-center transition font-bold"
+                    >
+                      .JSON
+                    </button>
+                  </div>
+                </div>
+
+                {/* DJs Section */}
+                {onExportDJsCSV && onExportDJsJSON && (
+                  <div className="p-1.5 bg-neutral-950/70 border border-neutral-800 rounded-lg space-y-1">
+                    <div className="text-[10px] text-neutral-400 font-bold uppercase flex items-center gap-1">
+                      <Headphones className="w-3 h-3 text-lime-400" />
+                      <span>DJs & Artists ({djsCount || 0})</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1 pt-0.5">
+                      <button
+                        onClick={() => {
+                          onExportDJsCSV();
+                          setIsExportMenuOpen(false);
+                        }}
+                        className="px-2 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 hover:text-lime-300 rounded text-center transition font-bold"
+                      >
+                        .CSV
+                      </button>
+                      <button
+                        onClick={() => {
+                          onExportDJsJSON();
+                          setIsExportMenuOpen(false);
+                        }}
+                        className="px-2 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-lime-300 rounded text-center transition font-bold"
+                      >
+                        .JSON
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
+
 
           {/* Quick Agent Trigger Button */}
           <button

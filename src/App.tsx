@@ -1,36 +1,54 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Club, TechnoEvent, AgentLog, AgentScheduleConfig, City } from './types/index.ts';
+import { Club, TechnoEvent, AgentLog, AgentScheduleConfig, City, DJProfile } from './types/index.ts';
 import { HAMBURG_CLUBS, INITIAL_EVENTS } from './data/hamburgClubsAndEvents.ts';
 import { BERLIN_CLUBS, BERLIN_EVENTS } from './data/berlinClubsAndEvents.ts';
+import { WIEN_CLUBS, WIEN_EVENTS } from './data/wienClubsAndEvents.ts';
+import { KOELN_CLUBS, KOELN_EVENTS } from './data/koelnClubsAndEvents.ts';
+import { INITIAL_DJS } from './data/djProfiles.ts';
 import { Header, CityFilter } from './components/Header';
 import { EventTable } from './components/EventTable';
 import { ClubMap } from './components/ClubMap';
 import { ClubDirectory } from './components/ClubDirectory';
+import { DJDirectory } from './components/DJDirectory.tsx';
+import { DJDetailModal } from './components/DJDetailModal.tsx';
 import { AgentAutomationPanel } from './components/AgentAutomationPanel';
 import { EventDetailModal } from './components/EventDetailModal';
 import { AdminLoginModal } from './components/AdminLoginModal.tsx';
 import { AdminAddEventModal } from './components/AdminAddEventModal.tsx';
 import { LoginScreen } from './components/LoginScreen.tsx';
 import { MobileBottomNav } from './components/MobileBottomNav.tsx';
-import { exportEventsToCSV, exportClubsToCSV } from './utils/csvExport.ts';
+import { 
+  exportEventsToCSV, 
+  exportEventsToJSON, 
+  exportClubsToCSV, 
+  exportClubsToJSON, 
+  exportDJsToCSV, 
+  exportDJsToJSON 
+} from './utils/csvExport.ts';
 import { Sparkles, X, ShieldCheck, Plus, LogOut } from 'lucide-react';
 
 const INITIAL_ALL_CLUBS: Club[] = [
   ...HAMBURG_CLUBS.map((c) => ({ ...c, city: 'Hamburg' as const })),
   ...BERLIN_CLUBS.map((c) => ({ ...c, city: 'Berlin' as const })),
+  ...WIEN_CLUBS.map((c) => ({ ...c, city: 'Wien' as const })),
+  ...KOELN_CLUBS.map((c) => ({ ...c, city: 'Köln' as const })),
 ];
 
 const INITIAL_ALL_EVENTS: TechnoEvent[] = [
   ...INITIAL_EVENTS.map((e) => ({ ...e, city: 'Hamburg' as const })),
   ...BERLIN_EVENTS.map((e) => ({ ...e, city: 'Berlin' as const })),
+  ...WIEN_EVENTS.map((e) => ({ ...e, city: 'Wien' as const })),
+  ...KOELN_EVENTS.map((e) => ({ ...e, city: 'Köln' as const })),
 ];
 
 export default function App() {
   const [events, setEvents] = useState<TechnoEvent[]>(INITIAL_ALL_EVENTS);
   const [clubs, setClubs] = useState<Club[]>(INITIAL_ALL_CLUBS);
+  const [djs, setDjs] = useState<DJProfile[]>(INITIAL_DJS);
   const [selectedCity, setSelectedCity] = useState<CityFilter>('Hamburg');
-  const [activeTab, setActiveTab] = useState<'table' | 'map' | 'clubs' | 'agent'>('table');
+  const [activeTab, setActiveTab] = useState<'table' | 'map' | 'clubs' | 'djs' | 'agent'>('table');
   const [selectedEvent, setSelectedEvent] = useState<TechnoEvent | null>(null);
+  const [selectedDJ, setSelectedDJ] = useState<DJProfile | null>(null);
   const [selectedClubIdForMap, setSelectedClubIdForMap] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanNotification, setScanNotification] = useState<string | null>(null);
@@ -88,14 +106,16 @@ export default function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [resClubs, resEvents, resConfig] = await Promise.all([
+        const [resClubs, resEvents, resDjs, resConfig] = await Promise.all([
           fetch('/api/clubs').then((r) => r.ok ? r.json() : INITIAL_ALL_CLUBS),
           fetch('/api/events').then((r) => r.ok ? r.json() : INITIAL_ALL_EVENTS),
+          fetch('/api/djs').then((r) => r.ok ? r.json() : INITIAL_DJS),
           fetch('/api/agent/config').then((r) => r.ok ? r.json() : null),
         ]);
 
         if (Array.isArray(resClubs) && resClubs.length > 0) setClubs(resClubs);
         if (Array.isArray(resEvents) && resEvents.length > 0) setEvents(resEvents);
+        if (Array.isArray(resDjs) && resDjs.length > 0) setDjs(resDjs);
         if (resConfig?.config) {
           setAgentConfig(resConfig.config);
           if (Array.isArray(resConfig.logs)) setAgentLogs(resConfig.logs);
@@ -108,7 +128,7 @@ export default function App() {
     fetchData();
   }, []);
 
-  // Filter clubs and events according to selectedCity
+  // Filter clubs, events and djs according to selectedCity
   const filteredClubs = useMemo(() => {
     if (selectedCity === 'Alle') return clubs;
     return clubs.filter((c) => (c.city || 'Hamburg').toLowerCase() === selectedCity.toLowerCase());
@@ -119,14 +139,24 @@ export default function App() {
     return events.filter((e) => (e.city || 'Hamburg').toLowerCase() === selectedCity.toLowerCase());
   }, [events, selectedCity]);
 
+  const filteredDJs = useMemo(() => {
+    if (selectedCity === 'Alle') return djs;
+    return djs.filter((d) => (d.city || 'Berlin').toLowerCase() === selectedCity.toLowerCase());
+  }, [djs, selectedCity]);
+
   // Count events scheduled for today (2026-10-31) in the current city selection
   const todayEventsCount = useMemo(() => {
     return filteredEvents.filter((e) => e.date === '2026-10-31').length;
   }, [filteredEvents]);
 
-  // CSV Export Handlers
+  // CSV & JSON Export Handlers
+  const getExportPrefix = () => {
+    if (selectedCity === 'Alle') return 'hamburg_berlin_wien_koeln';
+    return selectedCity.toLowerCase().replace('ö', 'oe');
+  };
+
   const handleExportEventsCSV = () => {
-    const prefix = selectedCity === 'Alle' ? 'hamburg_und_berlin' : selectedCity.toLowerCase();
+    const prefix = getExportPrefix();
     const dateStr = new Date().toISOString().split('T')[0];
     exportEventsToCSV(
       filteredEvents,
@@ -138,8 +168,44 @@ export default function App() {
     );
   };
 
+  const handleExportEventsJSON = () => {
+    const prefix = getExportPrefix();
+    const dateStr = new Date().toISOString().split('T')[0];
+    exportEventsToJSON(
+      filteredEvents,
+      `kraftwerk_${prefix}_events_${dateStr}.json`
+    );
+    setScanNotification(
+      `JSON-Export erfolgreich! ${filteredEvents.length} Events aus ${selectedCity} im Standard-JSON-Format heruntergeladen.`
+    );
+  };
+
+  const handleExportDJsCSV = () => {
+    const prefix = getExportPrefix();
+    const dateStr = new Date().toISOString().split('T')[0];
+    exportDJsToCSV(
+      filteredDJs,
+      `kraftwerk_${prefix}_djs_${dateStr}.csv`
+    );
+    setScanNotification(
+      `CSV-Export erfolgreich! ${filteredDJs.length} DJ-Profile aus ${selectedCity} mit Zero-Halluzinations-Audit heruntergeladen.`
+    );
+  };
+
+  const handleExportDJsJSON = () => {
+    const prefix = getExportPrefix();
+    const dateStr = new Date().toISOString().split('T')[0];
+    exportDJsToJSON(
+      filteredDJs,
+      `kraftwerk_${prefix}_djs_${dateStr}.json`
+    );
+    setScanNotification(
+      `JSON-Export erfolgreich! ${filteredDJs.length} DJ-Profile aus ${selectedCity} im Standard-JSON-Format heruntergeladen.`
+    );
+  };
+
   const handleExportClubsCSV = () => {
-    const prefix = selectedCity === 'Alle' ? 'hamburg_und_berlin' : selectedCity.toLowerCase();
+    const prefix = getExportPrefix();
     const dateStr = new Date().toISOString().split('T')[0];
     exportClubsToCSV(
       filteredClubs,
@@ -147,6 +213,18 @@ export default function App() {
     );
     setScanNotification(
       `CSV-Export erfolgreich! ${filteredClubs.length} Clubs aus ${selectedCity} heruntergeladen.`
+    );
+  };
+
+  const handleExportClubsJSON = () => {
+    const prefix = getExportPrefix();
+    const dateStr = new Date().toISOString().split('T')[0];
+    exportClubsToJSON(
+      filteredClubs,
+      `kraftwerk_${prefix}_clubs_${dateStr}.json`
+    );
+    setScanNotification(
+      `JSON-Export erfolgreich! ${filteredClubs.length} Clubs aus ${selectedCity} im Standard-JSON-Format heruntergeladen.`
     );
   };
 
@@ -183,7 +261,8 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           customQuery, 
-          city: selectedCity === 'Alle' ? undefined : selectedCity 
+          city: selectedCity === 'Alle' ? 'Alle' : selectedCity,
+          cities: selectedCity === 'Alle' ? ['Hamburg', 'Berlin', 'Köln', 'Wien'] : [selectedCity]
         }),
       });
 
@@ -325,8 +404,13 @@ export default function App() {
         totalEvents={filteredEvents.length}
         todayEventsCount={todayEventsCount}
         clubsCount={filteredClubs.length}
+        djsCount={filteredDJs.length}
         onExportEventsCSV={handleExportEventsCSV}
+        onExportEventsJSON={handleExportEventsJSON}
         onExportClubsCSV={handleExportClubsCSV}
+        onExportClubsJSON={handleExportClubsJSON}
+        onExportDJsCSV={handleExportDJsCSV}
+        onExportDJsJSON={handleExportDJsJSON}
         nextRunAt={agentConfig.nextRunAt}
         currentUser={currentUser}
         onOpenLogin={() => setIsLoginModalOpen(true)}
@@ -429,7 +513,17 @@ export default function App() {
           />
         )}
 
-        {/* Tab 4: Agent & Automation Scheduler */}
+        {/* Tab 4: DJ & Artist Directory (Zero-Hallucination & Standard-JSON) */}
+        {activeTab === 'djs' && (
+          <DJDirectory
+            djs={filteredDJs}
+            selectedCity={selectedCity}
+            onSelectCity={(c) => setSelectedCity(c as CityFilter)}
+            onSelectDJ={(dj) => setSelectedDJ(dj)}
+          />
+        )}
+
+        {/* Tab 5: Agent & Automation Scheduler */}
         {activeTab === 'agent' && (
           <AgentAutomationPanel
             config={agentConfig}
@@ -449,6 +543,22 @@ export default function App() {
         club={selectedEventClub}
         onClose={() => setSelectedEvent(null)}
         onOpenMapToClub={handleNavigateToMapWithClub}
+      />
+
+      {/* DJ & Artist Profile Dossier Modal with Zero-Hallucination Highlighting */}
+      <DJDetailModal
+        dj={selectedDJ}
+        onClose={() => setSelectedDJ(null)}
+        onSelectEventVenue={(venue) => {
+          const match = clubs.find((c) => 
+            c.name.toLowerCase().includes(venue.toLowerCase()) || 
+            venue.toLowerCase().includes(c.name.toLowerCase())
+          );
+          if (match) {
+            setSelectedClubIdForMap(match.id);
+            setActiveTab('map');
+          }
+        }}
       />
 
       {/* Administrator Login Modal (admin / donquijote) */}

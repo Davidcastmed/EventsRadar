@@ -107,7 +107,7 @@ export const ClubDirectory: React.FC<ClubDirectoryProps> = ({
         </div>
 
         <div className="text-xs text-neutral-400 font-mono flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-neutral-800/60">
-          <span>Zeige {filteredClubs.length} von {clubs.length} {selectedCity === 'Alle' ? 'Clubs in Hamburg & Berlin' : `${selectedCity} Clubs`}</span>
+          <span>Zeige {filteredClubs.length} von {clubs.length} {selectedCity === 'Alle' ? 'Clubs in Hamburg, Berlin, Wien & Köln' : `${selectedCity} Clubs`}</span>
           <span className="text-lime-400">Aktive Events im Radar: {events.length}</span>
         </div>
       </div>
