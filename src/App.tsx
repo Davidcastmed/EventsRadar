@@ -25,6 +25,7 @@ import {
   exportDJsToCSV, 
   exportDJsToJSON 
 } from './utils/csvExport.ts';
+import { getDynamicDateWindow, isEventPast } from './utils/dateUtils.ts';
 import { Sparkles, X, ShieldCheck, Plus, LogOut } from 'lucide-react';
 
 const INITIAL_ALL_CLUBS: Club[] = [
@@ -144,10 +145,24 @@ export default function App() {
     return djs.filter((d) => (d.city || 'Berlin').toLowerCase() === selectedCity.toLowerCase());
   }, [djs, selectedCity]);
 
-  // Count events scheduled for today (2026-10-31) in the current city selection
+  // Dynamic date window: 'Heute' is a dynamic variable that moves forward daily
+  const dynamicWindow = useMemo(() => getDynamicDateWindow(), []);
+
+  // Count events scheduled for today in the current city selection
   const todayEventsCount = useMemo(() => {
-    return filteredEvents.filter((e) => e.date === '2026-10-31').length;
-  }, [filteredEvents]);
+    return filteredEvents.filter((e) => e.date === dynamicWindow.todayStr).length;
+  }, [filteredEvents, dynamicWindow.todayStr]);
+
+  // Event counts per city for switcher badges
+  const cityEventCounts = useMemo<Record<CityFilter, number>>(() => {
+    return {
+      Hamburg: events.filter((e) => (e.city || 'Hamburg').toLowerCase() === 'hamburg').length,
+      Berlin: events.filter((e) => (e.city || '').toLowerCase() === 'berlin').length,
+      Wien: events.filter((e) => (e.city || '').toLowerCase() === 'wien').length,
+      Köln: events.filter((e) => (e.city || '').toLowerCase() === 'köln' || (e.city || '').toLowerCase() === 'koeln').length,
+      Alle: events.length,
+    };
+  }, [events]);
 
   // CSV & JSON Export Handlers
   const getExportPrefix = () => {
@@ -416,6 +431,7 @@ export default function App() {
         onOpenLogin={() => setIsLoginModalOpen(true)}
         onLogout={handleLogout}
         onOpenAddEvent={() => setIsAddEventModalOpen(true)}
+        cityEventCounts={cityEventCounts}
       />
 
       {/* Admin Status Sub-Bar when logged in */}

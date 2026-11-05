@@ -203,4 +203,7 @@ export interface AgentScheduleConfig {
   lastRunAt?: string;
   nextRunAt?: string;
   targetSources: string[];
+  ruleDescription?: string;
+  dateRangeRule?: string;
+  deduplicationRule?: string;
 }

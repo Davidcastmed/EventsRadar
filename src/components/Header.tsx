@@ -43,6 +43,7 @@ interface HeaderProps {
   onOpenLogin: () => void;
   onLogout: () => void;
   onOpenAddEvent?: () => void;
+  cityEventCounts?: Record<CityFilter, number>;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -66,6 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenLogin,
   onLogout,
   onOpenAddEvent,
+  cityEventCounts,
 }) => {
   const [currentTime, setCurrentTime] = useState('');
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
@@ -163,11 +165,12 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center p-1 bg-neutral-900 border border-neutral-800 rounded-xl font-mono text-xs ml-auto sm:ml-2 overflow-x-auto max-w-full">
             {(['Hamburg', 'Berlin', 'Wien', 'Köln', 'Alle'] as CityFilter[]).map((c) => {
               const active = selectedCity === c;
+              const count = cityEventCounts ? cityEventCounts[c] : undefined;
               return (
                 <button
                   key={c}
                   onClick={() => setSelectedCity(c)}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition font-bold whitespace-nowrap touch-manipulation ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition font-bold whitespace-nowrap touch-manipulation ${
                     active
                       ? c === 'Alle' ? 'bg-neutral-700 text-white shadow-md' : 'bg-lime-400 text-black shadow-md'
                       : 'text-neutral-400 hover:text-white'
@@ -175,6 +178,15 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   {c !== 'Alle' && <MapPin className="w-3 h-3" />}
                   <span>{c}</span>
+                  {count !== undefined && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold leading-none ${
+                      active
+                        ? c === 'Alle' ? 'bg-neutral-900 text-neutral-200' : 'bg-black text-lime-400'
+                        : 'bg-neutral-800 text-neutral-400'
+                    }`}>
+                      {count}
+                    </span>
+                  )}
                 </button>
               );
             })}

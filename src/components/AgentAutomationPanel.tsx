@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AgentLog, AgentScheduleConfig } from '../types';
+import { getDynamicDateWindow } from '../utils/dateUtils.ts';
 import { 
   Settings, 
   Terminal, 
@@ -35,6 +36,7 @@ export const AgentAutomationPanel: React.FC<AgentAutomationPanelProps> = ({
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(false);
   const [timeUntilNextRun, setTimeUntilNextRun] = useState<string>('Berechne...');
+  const dynamicWindow = useMemo(() => getDynamicDateWindow(), []);
 
   useEffect(() => {
     setScheduledTimesStr(config.scheduledTimes.join(', '));
@@ -161,6 +163,51 @@ export const AgentAutomationPanel: React.FC<AgentAutomationPanelProps> = ({
             <div className="text-sm font-bold text-white font-mono mt-0.5 flex items-center gap-1">
               <Database className="w-3.5 h-3.5 text-lime-400" />
               {totalEvents} gespeichert
+            </div>
+          </div>
+        </div>
+
+        {/* Permanent System Rules Banner */}
+        <div className="mt-4 p-4 bg-neutral-950/80 rounded-xl border border-lime-500/30 flex flex-col gap-2.5 text-xs">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-2 border-b border-neutral-800">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-lime-400/20 text-lime-400 font-mono font-bold text-[10px] uppercase">
+                Feste Systemregeln (Aktiv)
+              </span>
+              <span className="text-neutral-200 font-bold">
+                Täglicher automatischer Scan // Hamburg, Berlin, Köln & Wien
+              </span>
+            </div>
+            <div className="flex items-center gap-3 font-mono text-[11px]">
+              <span className="flex items-center gap-1 text-lime-400">
+                <CheckCircle2 className="w-3.5 h-3.5 text-lime-400" />
+                Duplikatschutz: 100%
+              </span>
+              <span className="text-neutral-500">•</span>
+              <span className="text-cyan-400">
+                Fenster: {dynamicWindow.todayLabel} – {dynamicWindow.twoMonthsLabel}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 font-mono text-[11px]">
+            <div className="p-2 rounded bg-neutral-900/70 border border-neutral-800">
+              <span className="text-lime-400 font-bold block mb-0.5">1. Dynamische Variable 'Heute'</span>
+              <span className="text-neutral-400 text-[10px]">
+                'Heute' ({dynamicWindow.todayStr}) rückt täglich um +1 Tag vor. Das 2-Monats-Fenster gleitet fortlaufend mit.
+              </span>
+            </div>
+            <div className="p-2 rounded bg-neutral-900/70 border border-neutral-800">
+              <span className="text-lime-400 font-bold block mb-0.5">2. Automatische Bereinigung</span>
+              <span className="text-neutral-400 text-[10px]">
+                Bei jedem Scan werden alle vergangenen Events (&lt; {dynamicWindow.todayStr}) automatisch entfernt.
+              </span>
+            </div>
+            <div className="p-2 rounded bg-neutral-900/70 border border-neutral-800">
+              <span className="text-lime-400 font-bold block mb-0.5">3. Multi-Attribut Anti-Duplikat</span>
+              <span className="text-neutral-400 text-[10px]">
+                Abgleich nach ID, Fingerprint, Club & Datum. Bereits vorhandene Events werden angereichert, nicht dupliziert.
+              </span>
             </div>
           </div>
         </div>

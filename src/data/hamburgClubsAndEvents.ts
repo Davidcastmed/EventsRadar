@@ -1112,6 +1112,42 @@ export const HAMBURG_CLUBS: Club[] = [
 ];
 
 export const INITIAL_EVENTS: TechnoEvent[] = [
+  {
+    id: 'evt-hh-nov05-suedpol-lab',
+    title: 'SÜDPOL THURSDAY LAB: ANALOG MODULAR & SUB-BASS',
+    subtitle: 'Wöchentlicher Subkultur-Freiraum am Billebecken mit Void Soundsystem',
+    clubId: 'suedpol',
+    clubName: 'Südpol',
+    date: '2026-11-05',
+    startTime: '22:00',
+    endTime: '06:00',
+    genres: ['Hypnotic Techno', 'Acid Techno', 'Live Modular', 'Dub Techno'],
+    lineup: [
+      { name: 'Vermeer', role: 'Resident', origin: 'Hamburg (Südpol)', genreFocus: 'Industrial & Deep Techno' },
+      { name: 'Südelbe Resonanz', role: 'Resident', origin: 'Hamburg', genreFocus: 'Live Modular 303' },
+      { name: 'DJ Disrespect', role: 'Resident', origin: 'Hamburg', genreFocus: 'Acid & Raw Grooves' },
+    ],
+    description: 'Donnerstags-Subkultur-Labor am Billebecken. Freiraum für analoge Experimente, warme Kaminöfen im Garten und ein Void-Soundsystem.',
+    price: {
+      presale: 10.0,
+      door: 14.0,
+      earlyBird: null,
+      currency: 'EUR',
+      notes: '10 - 14 € an der Abendkasse und im Vorverkauf',
+    },
+    ticketUrl: 'https://ra.co/events/de/hamburg',
+    ticketProvider: 'Resident Advisor',
+    ticketStatus: 'Verfügbar',
+    doorPolicyNotes: 'Entspannte Tür. Schwarz/Casual Rave. Safe Space.',
+    soundSystemNotes: 'Void Acoustics eingemessen für modulare Bassfrequenzen.',
+    minimumAge: 21,
+    photoPolicy: 'Kamera abgeklebt',
+    awarenessHighlights: STANDARD_AWARENESS_POLICY,
+    source: 'Resident Advisor Hamburg Official Listing',
+    sourceUrl: 'https://ra.co/clubs/116901',
+    discoveredAt: '2026-11-05T08:00:00Z',
+    isAgentDiscovered: false,
+  },
   // ==========================================
   // EXACTLY 9 EVENTS FOR TODAY: 2026-10-31 (HALLOWEEN SATURDAY NIGHT IN HAMBURG)
   // ==========================================

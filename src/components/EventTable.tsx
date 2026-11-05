@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { TechnoEvent, Club } from '../types';
+import { getDynamicDateWindow, isEventPast } from '../utils/dateUtils.ts';
 import { 
   Search, 
   MapPin, 
@@ -69,18 +70,22 @@ export const EventTable: React.FC<EventTableProps> = ({
     return Array.from(set).sort();
   }, [events]);
 
+  // Dynamic date window: 'Heute' is a dynamic variable advancing daily
+  const dynamicWindow = useMemo(() => getDynamicDateWindow(), []);
+  const { todayStr, twoWeeksStr, twoMonthsStr, todayLabel, twoMonthsLabel } = dynamicWindow;
+
   // Today, 2-week, and 2-month counts
   const todayEventsCount = useMemo(() => {
-    return events.filter((e) => e.date === '2026-10-31').length;
-  }, [events]);
+    return events.filter((e) => e.date === todayStr).length;
+  }, [events, todayStr]);
 
   const twoWeeksEventsCount = useMemo(() => {
-    return events.filter((e) => e.date >= '2026-10-31' && e.date <= '2026-11-15').length;
-  }, [events]);
+    return events.filter((e) => e.date >= todayStr && e.date <= twoWeeksStr).length;
+  }, [events, todayStr, twoWeeksStr]);
 
   const twoMonthsEventsCount = useMemo(() => {
-    return events.filter((e) => e.date >= '2026-11-01' && e.date <= '2027-01-15').length;
-  }, [events]);
+    return events.filter((e) => e.date >= todayStr && e.date <= twoMonthsStr).length;
+  }, [events, todayStr, twoMonthsStr]);
 
   // Filtering & Sorting
   const filteredEvents = useMemo(() => {
@@ -114,11 +119,11 @@ export const EventTable: React.FC<EventTableProps> = ({
 
         // Date Filter
         if (dateFilter === 'today') {
-          if (evt.date !== '2026-10-31') return false;
+          if (evt.date !== todayStr) return false;
         } else if (dateFilter === 'twoweeks') {
-          if (evt.date < '2026-10-31' || evt.date > '2026-11-15') return false;
+          if (evt.date < todayStr || evt.date > twoWeeksStr) return false;
         } else if (dateFilter === 'twomonths') {
-          if (evt.date < '2026-11-01' || evt.date > '2027-01-15') return false;
+          if (evt.date < todayStr || evt.date > twoMonthsStr) return false;
         } else if (dateFilter === 'weekend') {
           const day = new Date(evt.date + 'T12:00:00').getDay();
           // Friday = 5, Saturday = 6, Sunday = 0
@@ -230,7 +235,7 @@ export const EventTable: React.FC<EventTableProps> = ({
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-lime-400 animate-ping"></span>
-              <span>HEUTE (31. Okt • {todayEventsCount} Events)</span>
+              <span>HEUTE ({todayLabel} • {todayEventsCount} Events)</span>
             </button>
 
             {/* Nächste 2 Wochen */}
