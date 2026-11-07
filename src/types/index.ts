@@ -148,15 +148,15 @@ export interface TechnoEvent {
   isFree?: boolean;
   isOpenAir?: boolean;
   hasPresale?: boolean;
-  ticketUrl: string; // Kauflink oder ""
-  flyerUrl?: string; // Event-Poster / Flyer-Bild-URL oder ""
+  ticketUrl: string | null; // Kauflink oder null wenn nur Abendkasse oder Extraktions-Quelle
+  flyerUrl?: string | null; // Event-Poster / Flyer-Bild-URL oder null
   description: string;
   awarenessInfo?: string; // Richtlinie gegen Rassismus, Sexismus, Diskriminierung
   createdBy?: string;
   createdAt?: string;
   source: string;
   sources?: string[];
-  sourceWebsite?: string; // Herkunfts-Webseite (z. B. "https://ohschonhell.de", "https://oazis.app", "https://ra.co")
+  sourceWebsite?: string | null; // Herkunfts-Webseite (wird im JSON auf null gesetzt, dient nur der Extraktion)
   externalIds?: Record<string, string>;
   fingerprint?: string;
   attendeesCount?: number;
@@ -178,7 +178,7 @@ export interface TechnoEvent {
   minimumAge?: number | null;
   photoPolicy?: PhotoPolicy | string;
   awarenessHighlights?: string;
-  sourceUrl?: string;
+  sourceUrl?: string | null;
   discoveredAt?: string;
   isAgentDiscovered?: boolean;
 }

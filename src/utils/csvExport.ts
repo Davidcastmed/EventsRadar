@@ -295,10 +295,47 @@ export function exportDJsToCSV(djs: import('../types/index.ts').DJProfile[], cus
 }
 
 /**
- * Exports all provided events to a formatted JSON file
+ * Helper to sanitize event objects for JSON export:
+ * Extraction URLs (ohschonhell.de, oazis.app, scrape sources) were used solely
+ * to extract the event and are removed/set to null in the exported JSON.
+ */
+function sanitizeEventForExport(event: TechnoEvent): TechnoEvent {
+  const isExtractionUrl = (url?: string | null): boolean => {
+    if (!url) return false;
+    const lower = url.toLowerCase();
+    return (
+      lower.includes('ohschonhell.de') ||
+      lower.includes('oazis.app') ||
+      lower.includes('tripadvisor.de') ||
+      lower.includes('tripadvisor.com')
+    );
+  };
+
+  const copy = { ...event };
+
+  // Source URLs used only for extraction are set to null in the exported JSON
+  copy.sourceWebsite = null;
+  copy.sourceUrl = null;
+
+  // If ticketUrl was pointing to a scrape/extraction listing (e.g. ohschonhell.de or oazis.app), set to null
+  if (!copy.ticketUrl || isExtractionUrl(copy.ticketUrl)) {
+    copy.ticketUrl = null;
+  }
+
+  // If flyerUrl points to extraction site uploads, set to null
+  if (copy.flyerUrl && isExtractionUrl(copy.flyerUrl)) {
+    copy.flyerUrl = null;
+  }
+
+  return copy;
+}
+
+/**
+ * Exports all provided events to a formatted JSON file with extraction URLs set to null
  */
 export function exportEventsToJSON(events: TechnoEvent[], customFilename?: string) {
-  const jsonContent = JSON.stringify(events, null, 2);
+  const sanitizedEvents = events.map(sanitizeEventForExport);
+  const jsonContent = JSON.stringify(sanitizedEvents, null, 2);
   const dateStr = new Date().toISOString().split('T')[0];
   const filename = customFilename || `kraftwerk_events_${dateStr}.json`;
   downloadJSON(jsonContent, filename);

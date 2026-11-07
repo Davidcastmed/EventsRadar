@@ -52,7 +52,7 @@ export const EventTable: React.FC<EventTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClubId, setSelectedClubId] = useState<string>('all');
   const [selectedGenre, setSelectedGenre] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'twoweeks' | 'twomonths' | 'weekend' | 'agent'>('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'twomonths' | 'weekend' | 'agent'>('all');
   const [sortField, setSortField] = useState<'date' | 'price' | 'club'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -72,16 +72,12 @@ export const EventTable: React.FC<EventTableProps> = ({
 
   // Dynamic date window: 'Heute' is a dynamic variable advancing daily
   const dynamicWindow = useMemo(() => getDynamicDateWindow(), []);
-  const { todayStr, twoWeeksStr, twoMonthsStr, todayLabel, twoMonthsLabel } = dynamicWindow;
+  const { todayStr, twoMonthsStr, todayLabel, twoMonthsLabel } = dynamicWindow;
 
-  // Today, 2-week, and 2-month counts
+  // Today and 2-month counts
   const todayEventsCount = useMemo(() => {
     return events.filter((e) => e.date === todayStr).length;
   }, [events, todayStr]);
-
-  const twoWeeksEventsCount = useMemo(() => {
-    return events.filter((e) => e.date >= todayStr && e.date <= twoWeeksStr).length;
-  }, [events, todayStr, twoWeeksStr]);
 
   const twoMonthsEventsCount = useMemo(() => {
     return events.filter((e) => e.date >= todayStr && e.date <= twoMonthsStr).length;
@@ -120,8 +116,6 @@ export const EventTable: React.FC<EventTableProps> = ({
         // Date Filter
         if (dateFilter === 'today') {
           if (evt.date !== todayStr) return false;
-        } else if (dateFilter === 'twoweeks') {
-          if (evt.date < todayStr || evt.date > twoWeeksStr) return false;
         } else if (dateFilter === 'twomonths') {
           if (evt.date < todayStr || evt.date > twoMonthsStr) return false;
         } else if (dateFilter === 'weekend') {
@@ -238,17 +232,6 @@ export const EventTable: React.FC<EventTableProps> = ({
               <span>HEUTE ({todayLabel} • {todayEventsCount} Events)</span>
             </button>
 
-            {/* Nächste 2 Wochen */}
-            <button
-              onClick={() => setDateFilter('twoweeks')}
-              className={`px-2.5 py-1 rounded transition ${
-                dateFilter === 'twoweeks'
-                  ? 'bg-lime-400 text-black font-bold'
-                  : 'bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700'
-              }`}
-            >
-              2 Wochen ({twoWeeksEventsCount})
-            </button>
 
             {/* Nächste 2 Monate (Nov 2026 - Jan 2027) */}
             <button

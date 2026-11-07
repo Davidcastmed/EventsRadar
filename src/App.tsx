@@ -54,7 +54,7 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanNotification, setScanNotification] = useState<string | null>(null);
 
-  // Authentication State (admin / donquijote)
+  // Authentication State (admin / donquijote) - Persisted across reloads
   const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(() => {
     try {
       const stored = localStorage.getItem('kraftwerk_admin_user');
@@ -64,8 +64,16 @@ export default function App() {
     }
   });
 
-  // Guarantee that the very first thing seen is the login screen
-  const [hasEnteredApp, setHasEnteredApp] = useState<boolean>(false);
+  // Persist session across refreshes so the user does NOT have to re-login every time they refresh
+  const [hasEnteredApp, setHasEnteredApp] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('kraftwerk_admin_user');
+      const entered = localStorage.getItem('kraftwerk_has_entered');
+      return Boolean(stored && entered !== 'false');
+    } catch {
+      return false;
+    }
+  });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAddEventModalOpen, setIsAddEventModalOpen] = useState(false);
 
@@ -80,9 +88,14 @@ export default function App() {
     lastRunAt: new Date().toISOString(),
     nextRunAt: new Date(Date.now() + 3600000 * 4).toISOString(),
     targetSources: [
-      'Resident Advisor (RA Hamburg & Berlin)',
+      'ohschonhell.de (Hamburg & Norddeutschland Event-Radar)',
+      'Oazis.app (Berlin, Wien & Köln Underground Guide)',
+      'Eventim.de (Großkonzerte & Club-Shows Deutschland / Österreich)',
+      'Eventim Light (Direkt-Ticketing für Underground-Clubs & Kollektive)',
+      'Tripadvisor (Club-Reviews, Nachtleben-Rankings & Geheimtipps)',
+      'Resident Advisor (Hamburg, Berlin, Wien, Köln)',
       'Clubkombinat Hamburg & Clubcommission Berlin',
-      'TixforGigs / Eventim Light / Resident Advisor Tickets',
+      'TixforGigs & Resident Advisor Tickets',
       'Instagram / Telegram Underground Channels',
       'GoBase Electronic Gathering Database',
     ],
@@ -93,12 +106,15 @@ export default function App() {
       id: 'boot-log',
       timestamp: new Date().toISOString(),
       level: 'info',
-      message: 'Autonomer KI-Agent KRAFTWERK bereit zur Überwachung der Clubszene in Hamburg & Berlin.',
+      message: 'Autonomer KI-Agent KRAFTWERK bereit zur Überwachung der Clubszene in Hamburg, Berlin, Wien & Köln.',
       sources: [
-        { title: 'Resident Advisor Hamburg Portal', uri: 'https://ra.co/events/de/hamburg' },
-        { title: 'Resident Advisor Berlin Portal', uri: 'https://ra.co/events/de/berlin' },
-        { title: 'Clubkombinat Hamburg Kulturdatenbank', uri: 'https://clubkombinat.de' },
-        { title: 'Clubcommission Berlin', uri: 'https://clubcommission.de' },
+        { title: 'ohschonhell.de (Hamburg & Norddeutschland)', uri: 'https://ohschonhell.de' },
+        { title: 'Oazis.app (Berlin, Wien & Köln Guide)', uri: 'https://oazis.app' },
+        { title: 'Eventim.de (Konzerte & Club-Shows)', uri: 'https://www.eventim.de' },
+        { title: 'Eventim Light (Underground-Clubs & Direkt-Ticketing)', uri: 'https://www.eventim-light.com' },
+        { title: 'Tripadvisor (Club-Reviews & Nachtleben-Rankings)', uri: 'https://www.tripadvisor.de' },
+        { title: 'Resident Advisor Directory (DACH)', uri: 'https://ra.co/events' },
+        { title: 'Clubkombinat Hamburg & Clubcommission Berlin', uri: 'https://clubkombinat.de' },
       ],
     },
   ]);
@@ -127,6 +143,23 @@ export default function App() {
     };
 
     fetchData();
+
+    // Verify session on mount with backend if token exists
+    const token = localStorage.getItem('kraftwerk_auth_token');
+    if (token) {
+      fetch('/api/auth/verify', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && data.authenticated === false) {
+            handleLogout();
+          }
+        })
+        .catch(() => {
+          // Offline fallback: maintain existing local session
+        });
+    }
   }, []);
 
   // Filter clubs, events and djs according to selectedCity
@@ -348,8 +381,11 @@ export default function App() {
   // Auth Handlers (admin / donquijote)
   const handleLoginSuccess = (user: { username: string; role: string }) => {
     setCurrentUser(user);
+    setHasEnteredApp(true);
     try {
       localStorage.setItem('kraftwerk_admin_user', JSON.stringify(user));
+      localStorage.setItem('kraftwerk_auth_token', 'kraftwerk_admin_session_valid');
+      localStorage.setItem('kraftwerk_has_entered', 'true');
     } catch (e) {
       console.warn('LocalStorage error:', e);
     }
@@ -363,12 +399,14 @@ export default function App() {
       console.warn('Logout request failed:', e);
     }
     setCurrentUser(null);
+    setHasEnteredApp(false);
     try {
       localStorage.removeItem('kraftwerk_admin_user');
+      localStorage.removeItem('kraftwerk_auth_token');
+      localStorage.removeItem('kraftwerk_has_entered');
     } catch (e) {
       console.warn('LocalStorage error:', e);
     }
-    setHasEnteredApp(false);
     setScanNotification('Erfolgreich abgemeldet. Anmelde-Bildschirm geöffnet.');
   };
 

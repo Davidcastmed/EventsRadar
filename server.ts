@@ -59,9 +59,9 @@ const SAMPLE_USER_EVENT: TechnoEvent = {
   priceNumeric: 15,
   isFree: false,
   isOpenAir: false,
-  hasPresale: true,
-  ticketUrl: "https://ohschonhell.de/date/schroedingers-topspin",
-  flyerUrl: "https://ohschonhell.de/wp-content/uploads/2026/10/banner.jpg",
+  hasPresale: false,
+  ticketUrl: null,
+  flyerUrl: null,
   description: "Rave-Atmosphäre und Tischtennis-Rundlauf mit Szene-DJs.",
   awarenessInfo: "Respektvoller Umgang. Kein Sexismus, Rassismus oder Homophobie.",
   awarenessHighlights: "Respektvoller Umgang. Kein Sexismus, Rassismus oder Homophobie.",
@@ -71,7 +71,8 @@ const SAMPLE_USER_EVENT: TechnoEvent = {
   sources: [
     "ohschonhell_sync"
   ],
-  sourceWebsite: "https://ohschonhell.de",
+  sourceWebsite: null,
+  sourceUrl: null,
   externalIds: {
     ohschonhell: "28995"
   },
@@ -237,6 +238,17 @@ export function normalizeClub(raw: any, defaultCity = 'hamburg'): Club {
   };
 }
 
+function isExtractionUrl(url?: string | null): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return (
+    lower.includes('ohschonhell.de') ||
+    lower.includes('oazis.app') ||
+    lower.includes('tripadvisor.de') ||
+    lower.includes('tripadvisor.com')
+  );
+}
+
 // Normalizer to guarantee all 28 attributes of the new JSON standard with Zero-Halluzination
 export function normalizeEvent(raw: any, defaultCity = 'hamburg'): TechnoEvent {
   const city = (raw.city || defaultCity).toLowerCase();
@@ -269,7 +281,20 @@ export function normalizeEvent(raw: any, defaultCity = 'hamburg'): TechnoEvent {
   }
 
   const isFree = raw.isFree ?? (priceNumeric === 0 || entryFee.toLowerCase().includes('frei'));
-  const hasPresale = raw.hasPresale ?? (Boolean(raw.price?.presale) || Boolean(raw.ticketUrl));
+
+  // Extraction URLs (ohschonhell.de, oazis.app) are used solely for discovery;
+  // in the JSON object they must be null.
+  let ticketUrl: string | null = raw.ticketUrl || null;
+  if (isExtractionUrl(ticketUrl)) {
+    ticketUrl = null;
+  }
+
+  let flyerUrl: string | null = raw.flyerUrl || null;
+  if (isExtractionUrl(flyerUrl)) {
+    flyerUrl = null;
+  }
+
+  const hasPresale = raw.hasPresale ?? (Boolean(raw.price?.presale) || Boolean(ticketUrl));
   const isOpenAir = raw.isOpenAir ?? false;
 
   const awarenessInfo = raw.awarenessInfo || raw.awarenessHighlights || 
@@ -285,9 +310,9 @@ export function normalizeEvent(raw: any, defaultCity = 'hamburg'): TechnoEvent {
 
   // Strict Zero-Hallucination check: detect missing attributes
   const missingAttrs: string[] = Array.isArray(raw.missingAttributes) ? [...raw.missingAttributes] : [];
-  if (!raw.ticketUrl && !missingAttrs.includes('ticketUrl')) missingAttrs.push('ticketUrl');
+  if (!ticketUrl && !missingAttrs.includes('ticketUrl')) missingAttrs.push('ticketUrl');
   if (!entryFee && priceNumeric == null && !missingAttrs.includes('entryFee')) missingAttrs.push('entryFee');
-  if (!raw.flyerUrl && !missingAttrs.includes('flyerUrl')) missingAttrs.push('flyerUrl');
+  if (!flyerUrl && !missingAttrs.includes('flyerUrl')) missingAttrs.push('flyerUrl');
   if (!raw.venueAddress && !missingAttrs.includes('venueAddress')) missingAttrs.push('venueAddress');
   if (!raw.description && !missingAttrs.includes('description')) missingAttrs.push('description');
   if (lineup.length === 0 && !missingAttrs.includes('lineup')) missingAttrs.push('lineup');
@@ -321,8 +346,8 @@ export function normalizeEvent(raw: any, defaultCity = 'hamburg'): TechnoEvent {
     isFree: Boolean(isFree),
     isOpenAir: Boolean(isOpenAir),
     hasPresale: Boolean(hasPresale),
-    ticketUrl: raw.ticketUrl || '',
-    flyerUrl: raw.flyerUrl || '',
+    ticketUrl: ticketUrl,
+    flyerUrl: flyerUrl,
     description: raw.description || '',
     awarenessInfo: awarenessInfo,
     awarenessHighlights: awarenessInfo,
@@ -330,7 +355,8 @@ export function normalizeEvent(raw: any, defaultCity = 'hamburg'): TechnoEvent {
     createdAt: raw.createdAt || raw.discoveredAt || new Date().toISOString(),
     source: raw.source || 'ohschonhell_sync',
     sources: Array.isArray(raw.sources) ? raw.sources : [raw.source || 'ohschonhell_sync'],
-    sourceWebsite: raw.sourceWebsite || (raw.sourceUrl ? (() => { try { return new URL(raw.sourceUrl).origin; } catch { return ''; } })() : (city === 'hamburg' ? 'https://ohschonhell.de' : city === 'berlin' || city === 'wien' ? 'https://oazis.app' : 'https://ohschonhell.de')),
+    sourceWebsite: null, // Extraction URLs are strictly used for crawling, null in JSON
+    sourceUrl: null,     // Extraction URLs are strictly used for crawling, null in JSON
     externalIds: raw.externalIds || {},
     fingerprint: fingerprint,
     attendeesCount: raw.attendeesCount ?? 0,
@@ -344,7 +370,7 @@ export function normalizeEvent(raw: any, defaultCity = 'hamburg'): TechnoEvent {
       currency: 'EUR',
       notes: entryFee,
     },
-    ticketStatus: raw.ticketStatus || (raw.ticketUrl ? 'Verfügbar' : 'Nur Abendkasse'),
+    ticketStatus: raw.ticketStatus || (ticketUrl ? 'Verfügbar' : 'Nur Abendkasse'),
     ticketProvider: raw.ticketProvider || '',
     isAgentDiscovered: raw.isAgentDiscovered ?? false,
     discoveredAt: raw.discoveredAt || new Date().toISOString(),
@@ -460,6 +486,9 @@ let agentLogs: AgentLog[] = [
     sources: [
       { title: 'ohschonhell.de (Hamburg & Norddeutschland)', uri: 'https://ohschonhell.de' },
       { title: 'Oazis.app (Berlin, Wien & Köln Guide)', uri: 'https://oazis.app' },
+      { title: 'Eventim.de (Konzerte, Clubs & Groß-Events)', uri: 'https://www.eventim.de' },
+      { title: 'Eventim Light (Underground-Clubs & Direkt-Ticketing)', uri: 'https://www.eventim-light.com' },
+      { title: 'Tripadvisor (Club-Reviews & Nachtleben-Rankings)', uri: 'https://www.tripadvisor.de' },
       { title: 'Resident Advisor Directory (DACH)', uri: 'https://ra.co/events' },
       { title: 'Clubkombinat Hamburg & Clubcommission Berlin', uri: 'https://clubkombinat.de' },
     ],
@@ -471,19 +500,22 @@ let agentScheduleConfig: AgentScheduleConfig = {
   scheduledTimes: ['08:00', '18:00', '22:00'],
   scanFrequencyHours: 6,
   targetCity: 'Hamburg, Berlin, Wien & Köln',
-  customSearchPrompt: 'Feste Automations-Regel: Finde anstehende Underground-Techno-Events für Hamburg (ohschonhell.de), Berlin (Oazis.app), Wien (Oazis.app) und Köln (ohschonhell.de / Oazis.app) im festen Zeitfenster von heute bis zu 2 Monaten im Voraus mit garantierter Duplikatvermeidung.',
+  customSearchPrompt: 'Feste Automations-Regel: Finde anstehende Underground-Techno-Events für Hamburg (ohschonhell.de), Berlin (Oazis.app), Wien (Oazis.app) und Köln (ohschonhell.de / Oazis.app) sowie Tickets über Eventim.de, Eventim Light & Tripadvisor-Empfehlungen im festen Zeitfenster von heute bis zu 2 Monaten im Voraus mit garantierter Duplikatvermeidung.',
   autoSyncWithDatabase: true,
   lastRunAt: new Date(Date.now() - 3600000 * 2).toISOString(),
   nextRunAt: new Date(Date.now() + 3600000 * 4).toISOString(),
   ruleDescription: 'Feste Regel: Täglicher automatischer Scan (Heute bis zu 2 Monate im Voraus) für Hamburg, Berlin, Köln & Wien mit garantierter No-Duplicate-Richtlinie.',
   dateRangeRule: 'Heute bis 2 Monate im Voraus (Nov 2026 - Jan 2027 fortlaufend)',
-  deduplicationRule: 'Strikter Duplikatschutz: Abgleich nach ID, Fingerprint, externer ID (ohschonhell/oazis) und normalisiertem Titel + Datum',
+  deduplicationRule: 'Strikter Duplikatschutz: Abgleich nach ID, Fingerprint, externer ID (ohschonhell/oazis/eventim/tripadvisor) und normalisiertem Titel + Datum',
   targetSources: [
     'ohschonhell.de (Hamburg & Norddeutschland Event-Radar)',
     'Oazis.app (Berlin, Wien & Köln Underground Guide)',
+    'Eventim.de (Großkonzerte & Club-Shows Deutschland / Österreich)',
+    'Eventim Light (Direkt-Ticketing für Underground-Clubs & Kollektive)',
+    'Tripadvisor (Club-Reviews, Nachtleben-Rankings & Geheimtipps)',
     'Resident Advisor (Hamburg, Berlin, Wien, Köln)',
     'Clubkombinat Hamburg & Clubcommission Berlin',
-    'TixforGigs / Eventim Light / Resident Advisor Tickets',
+    'TixforGigs & Resident Advisor Tickets',
     'Instagram / Telegram Underground Channels',
     'GoBase Electronic Gathering Database',
   ],
@@ -698,10 +730,10 @@ Referenzzeitraum: Vom heutigen Tag (${todayLabel} / ${todayStr}) bis zu 2 Monate
 
 
 Spezialisierte Quell-Webseiten zum Crawlen:
-- Hamburg: ohschonhell.de (https://ohschonhell.de), Resident Advisor Hamburg (ra.co), Clubkombinat
-- Berlin: Oazis.app (https://oazis.app), Resident Advisor Berlin (ra.co), Clubcommission Berlin
-- Wien: Oazis.app (https://oazis.app/events/wien), Resident Advisor Wien, Clubportale
-- Köln: ohschonhell.de / Oazis.app (https://oazis.app/events/koeln), Resident Advisor Köln
+- Hamburg: ohschonhell.de (https://ohschonhell.de), Eventim.de (https://www.eventim.de), Eventim Light (https://www.eventim-light.com), Tripadvisor Hamburg (https://www.tripadvisor.de), Resident Advisor Hamburg (ra.co), Clubkombinat
+- Berlin: Oazis.app (https://oazis.app), Eventim.de (https://www.eventim.de), Eventim Light (https://www.eventim-light.com), Tripadvisor Berlin (https://www.tripadvisor.de), Resident Advisor Berlin (ra.co), Clubcommission Berlin
+- Wien: Oazis.app (https://oazis.app/events/wien), Eventim.de / Oeticket (https://www.oeticket.com), Eventim Light, Tripadvisor Wien, Resident Advisor Wien, Clubportale
+- Köln: ohschonhell.de, Oazis.app (https://oazis.app/events/koeln), Eventim.de (https://www.eventim.de), Eventim Light (https://www.eventim-light.com), Tripadvisor Köln, Resident Advisor Köln
 
 Zielclubs je Stadt:
 - Hamburg: Südpol, Uebel & Gefährlich, Golden Pudel Club, PAL, Waagenbau, MS Stubnitz, Fundbureau, Hafenklang, Schroedingers am Schanzenpark.
@@ -1369,6 +1401,9 @@ Antworte AUSSCHLIESSLICH im gültigen JSON-Format (ein Array von Event-Objekten)
       webSources = [
         { title: 'ohschonhell.de (Hamburg & Norddeutschland Event-Radar)', uri: 'https://ohschonhell.de' },
         { title: 'Oazis.app (Berlin, Wien & Köln Underground Guide)', uri: 'https://oazis.app' },
+        { title: 'Eventim.de (Großkonzerte & Club-Events)', uri: 'https://www.eventim.de' },
+        { title: 'Eventim Light (Underground-Clubs & Kollektiv-Tickets)', uri: 'https://www.eventim-light.com' },
+        { title: 'Tripadvisor (Nachtleben, Club-Rankings & Rezensionen)', uri: 'https://www.tripadvisor.de' },
         { title: 'Resident Advisor Radar (Hamburg, Berlin, Wien, Köln)', uri: 'https://ra.co/events' },
         { title: 'Clubkombinat Hamburg Kulturdatenbank', uri: 'https://clubkombinat.de' },
         { title: 'Südpol Hamburg Offizielles Programm', uri: 'https://suedpol.org' },
@@ -1425,15 +1460,16 @@ Antworte AUSSCHLIESSLICH im gültigen JSON-Format (ein Array von Event-Objekten)
   let alreadyInSystemCount = 0;
   let enrichedCount = 0;
 
-  // Filter discovered events: Only allow events within the dynamic sliding window [todayStr, twoMonthsStr]
-  const validDiscoveredEvents = discoveredEvents.filter((item) => {
-    if (isEventPast(item.date, todayStr)) return false;
-    if (item.date > twoMonthsStr) return false;
-    return true;
-  });
+  // Filter & normalize discovered events: Only allow events within the dynamic sliding window [todayStr, twoMonthsStr]
+  const validDiscoveredEvents = discoveredEvents
+    .filter((item) => {
+      if (isEventPast(item.date, todayStr)) return false;
+      if (item.date > twoMonthsStr) return false;
+      return true;
+    })
+    .map((rawEvt) => normalizeEvent(rawEvt, rawEvt.city || targetCities[0]));
 
-  for (const rawEvt of validDiscoveredEvents) {
-    const evt = normalizeEvent(rawEvt, rawEvt.city || targetCities[0]);
+  for (const evt of validDiscoveredEvents) {
     const existingIdx = findExistingEventIndex(evt, eventsList);
 
     if (existingIdx >= 0) {

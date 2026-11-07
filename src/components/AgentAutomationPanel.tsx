@@ -316,7 +316,7 @@ export const AgentAutomationPanel: React.FC<AgentAutomationPanelProps> = ({
           <div className="pt-3 border-t border-neutral-800">
             <h4 className="text-xs font-mono font-bold text-neutral-300 uppercase mb-2 flex items-center gap-1.5">
               <Globe className="w-3.5 h-3.5 text-lime-400" />
-              Überwachte Hamburger Webquellen
+              Überwachte Webquellen & Ticket-Portale
             </h4>
             <div className="grid grid-cols-1 gap-1.5 text-xs">
               {config.targetSources.map((source, idx) => (
